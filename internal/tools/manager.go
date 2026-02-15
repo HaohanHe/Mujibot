@@ -17,7 +17,6 @@ import (
 	"github.com/HaohanHe/mujibot/internal/memory"
 )
 
-// Tool 工具接口
 type Tool interface {
 	Name() string
 	Description() string
@@ -25,32 +24,33 @@ type Tool interface {
 	Execute(args map[string]interface{}) (string, error)
 }
 
-// Manager 工具管理器
 type Manager struct {
 	tools            map[string]Tool
 	workDir          string
 	timeout          time.Duration
 	confirmDangerous bool
+	unattendedMode   bool
 	blockedCommands  []string
 	enabledTools     map[string]bool
+	terminalEnabled  bool
+	webSearchEnabled bool
 	memoryMgr        *memory.Manager
 	log              *logger.Logger
 }
 
-// Config 工具配置
 type Config struct {
 	WorkDir          string
 	Timeout          int
 	ConfirmDangerous bool
-	AllowedCommands  []string
+	UnattendedMode   bool
 	BlockedCommands  []string
-	EnabledTools     map[string]bool // 工具开关
+	EnabledTools     map[string]bool
+	TerminalEnabled  bool
+	WebSearchEnabled bool
 	MemoryMgr        *memory.Manager
 }
 
-// NewManager 创建工具管理器
 func NewManager(cfg Config, log *logger.Logger) (*Manager, error) {
-	// 创建工作目录
 	if err := os.MkdirAll(cfg.WorkDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create work directory: %w", err)
 	}
@@ -60,8 +60,11 @@ func NewManager(cfg Config, log *logger.Logger) (*Manager, error) {
 		workDir:          cfg.WorkDir,
 		timeout:          time.Duration(cfg.Timeout) * time.Second,
 		confirmDangerous: cfg.ConfirmDangerous,
+		unattendedMode:   cfg.UnattendedMode,
 		blockedCommands:  cfg.BlockedCommands,
 		enabledTools:     cfg.EnabledTools,
+		terminalEnabled:  cfg.TerminalEnabled,
+		webSearchEnabled: cfg.WebSearchEnabled,
 		memoryMgr:        cfg.MemoryMgr,
 		log:              log,
 	}
@@ -112,7 +115,6 @@ func (m *Manager) Execute(name string, args map[string]interface{}) (string, err
 	return result, nil
 }
 
-// GetToolDefinitions 获取工具定义（用于LLM）
 func (m *Manager) GetToolDefinitions() []map[string]interface{} {
 	defs := make([]map[string]interface{}, 0, len(m.tools))
 	for _, tool := range m.tools {
@@ -128,7 +130,32 @@ func (m *Manager) GetToolDefinitions() []map[string]interface{} {
 	return defs
 }
 
-// registerBuiltinTools 注册内置工具（根据配置开关）
+func (m *Manager) GetConfig() Config {
+	return Config{
+		WorkDir:          m.workDir,
+		Timeout:          int(m.timeout.Seconds()),
+		ConfirmDangerous: m.confirmDangerous,
+		UnattendedMode:   m.unattendedMode,
+		BlockedCommands:  m.blockedCommands,
+		EnabledTools:     m.enabledTools,
+		TerminalEnabled:  m.terminalEnabled,
+		WebSearchEnabled: m.webSearchEnabled,
+		MemoryMgr:        m.memoryMgr,
+	}
+}
+
+func (m *Manager) IsWebSearchEnabled() bool {
+	return m.webSearchEnabled
+}
+
+func (m *Manager) IsTerminalEnabled() bool {
+	return m.terminalEnabled
+}
+
+func (m *Manager) IsUnattendedMode() bool {
+	return m.unattendedMode
+}
+
 func (m *Manager) registerBuiltinTools() {
 	allTools := []Tool{
 		&ReadFileTool{manager: m},
@@ -137,15 +164,19 @@ func (m *Manager) registerBuiltinTools() {
 		&ExecuteCommandTool{manager: m},
 		&GetSystemInfoTool{manager: m},
 		&ApplyPatchTool{manager: m},
-		&WebSearchTool{manager: m},
-		&HTTPRequestTool{manager: m},
-		&WeatherTool{manager: m},
-		&IPInfoTool{manager: m},
-		&ExchangeRateTool{manager: m},
 		&GrepTool{manager: m},
 		&MemoryReadTool{manager: m},
 		&MemoryWriteTool{manager: m},
 	}
+
+	if m.webSearchEnabled {
+		allTools = append(allTools, &WebSearchTool{manager: m})
+		allTools = append(allTools, &HTTPRequestTool{manager: m})
+	}
+
+	allTools = append(allTools, &WeatherTool{manager: m})
+	allTools = append(allTools, &IPInfoTool{manager: m})
+	allTools = append(allTools, &ExchangeRateTool{manager: m})
 
 	for _, tool := range allTools {
 		name := tool.Name()

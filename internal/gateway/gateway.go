@@ -128,8 +128,11 @@ func (g *Gateway) initComponents() error {
 		WorkDir:          cfg.Tools.WorkDir,
 		Timeout:          cfg.Tools.Timeout,
 		ConfirmDangerous: cfg.Tools.ConfirmDangerous,
+		UnattendedMode:   cfg.Tools.UnattendedMode,
 		BlockedCommands:  cfg.Tools.BlockedCommands,
 		EnabledTools:     cfg.Tools.EnabledTools,
+		TerminalEnabled:  cfg.Tools.TerminalEnabled,
+		WebSearchEnabled: cfg.Tools.WebSearchEnabled,
 		MemoryMgr:        memoryMgr,
 	}
 	toolMgr, err := tools.NewManager(toolCfg, g.log)

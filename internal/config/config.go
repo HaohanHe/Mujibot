@@ -42,9 +42,10 @@ type ChannelsConfig struct {
 
 // TelegramConfig Telegram配置
 type TelegramConfig struct {
-	Enabled      bool    `json:"enabled"`
-	Token        string  `json:"token"`
-	AllowedUsers []int64 `json:"allowedUsers"`
+	Enabled       bool    `json:"enabled"`
+	Token         string  `json:"token"`
+	AllowedUsers  []int64 `json:"allowedUsers"`
+	NotifyEnabled bool    `json:"notifyEnabled"` // 启用通知
 }
 
 // DiscordConfig Discord配置
@@ -52,15 +53,17 @@ type DiscordConfig struct {
 	Enabled       bool     `json:"enabled"`
 	Token         string   `json:"token"`
 	AllowedGuilds []string `json:"allowedGuilds"`
+	NotifyEnabled bool     `json:"notifyEnabled"` // 启用通知
 }
 
 // FeishuConfig 飞书配置
 type FeishuConfig struct {
-	Enabled      bool     `json:"enabled"`
-	AppID        string   `json:"appId"`
-	AppSecret    string   `json:"appSecret"`
-	EncryptKey   string   `json:"encryptKey"`
-	AllowedUsers []string `json:"allowedUsers"`
+	Enabled       bool     `json:"enabled"`
+	AppID         string   `json:"appId"`
+	AppSecret     string   `json:"appSecret"`
+	EncryptKey    string   `json:"encryptKey"`
+	AllowedUsers  []string `json:"allowedUsers"`
+	NotifyEnabled bool     `json:"notifyEnabled"` // 启用通知
 }
 
 // LLMConfig LLM提供商配置
@@ -97,25 +100,29 @@ type AgentConfig struct {
 
 // ToolsConfig 工具配置
 type ToolsConfig struct {
-	WorkDir          string              `json:"workDir"`
-	Timeout          int                 `json:"timeout"`
-	ConfirmDangerous bool                `json:"confirmDangerous"`
-	AllowedCommands  []string            `json:"allowedCommands"`
-	BlockedCommands  []string            `json:"blockedCommands"`
-	EnabledTools     map[string]bool     `json:"enabledTools"`     // 工具开关
-	CustomAPIs       []CustomAPIConfig   `json:"customAPIs"`       // 用户自定义API
+	WorkDir              string            `json:"workDir"`
+	Timeout              int               `json:"timeout"`
+	ConfirmDangerous     bool              `json:"confirmDangerous"`     // 高危操作需确认
+	UnattendedMode       bool              `json:"unattendedMode"`       // 无人值守模式
+	AlwaysAllowDangerous []string          `json:"alwaysAllowDangerous"` // 始终允许的危险操作
+	AllowedCommands      []string          `json:"allowedCommands"`
+	BlockedCommands      []string          `json:"blockedCommands"`
+	EnabledTools         map[string]bool   `json:"enabledTools"`     // 工具开关
+	WebSearchEnabled     bool              `json:"webSearchEnabled"` // 联网搜索开关
+	TerminalEnabled      bool              `json:"terminalEnabled"`  // 终端接管开关
+	CustomAPIs           []CustomAPIConfig `json:"customAPIs"`       // 用户自定义API
 }
 
 // CustomAPIConfig 自定义API配置
 type CustomAPIConfig struct {
-	Name        string            `json:"name"`        // API名称
-	Description string            `json:"description"` // 描述
-	URL         string            `json:"url"`         // API URL模板
-	Method      string            `json:"method"`      // HTTP方法
-	Headers     map[string]string `json:"headers"`     // 请求头
-	APIKey      string            `json:"apiKey"`      // API密钥
-	Timeout     int               `json:"timeout"`     // 超时时间
-	Enabled     bool              `json:"enabled"`     // 是否启用
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	URL         string            `json:"url"`
+	Method      string            `json:"method"`
+	Headers     map[string]string `json:"headers"`
+	APIKey      string            `json:"apiKey"`
+	Timeout     int               `json:"timeout"`
+	Enabled     bool              `json:"enabled"`
 }
 
 // SessionConfig 会话配置
@@ -457,6 +464,8 @@ func (m *Manager) createDefaultConfig() error {
     "workDir": "/tmp/mujibot",
     "timeout": 30,
     "confirmDangerous": true,
+    "unattendedMode": false,
+    "alwaysAllowDangerous": [],
     "allowedCommands": [],
     "blockedCommands": ["reboot", "shutdown", "init", "poweroff", "halt"],
     "enabledTools": {
@@ -464,14 +473,14 @@ func (m *Manager) createDefaultConfig() error {
       "write_file": true,
       "list_directory": true,
       "execute_command": true,
-      "web_search": true,
-      "http_request": true,
       "weather": true,
       "ip_info": true,
       "exchange_rate": true,
       "memory_read": true,
       "memory_write": true
     },
+    "webSearchEnabled": false,
+    "terminalEnabled": false,
     "customAPIs": []
   },
   "session": {
