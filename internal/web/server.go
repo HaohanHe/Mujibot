@@ -20,17 +20,18 @@ import (
 
 // Server Web服务器
 type Server struct {
-	port       int
-	config     *config.Manager
-	sessionMgr *session.Manager
-	agentRouter *agent.Router
-	healthCheck *health.Checker
-	log        *logger.Logger
-	mu         sync.RWMutex
-	clients    map[chan string]bool
-	messages   []DebugMessage
-	maxMsgs    int
+	port         int
+	config       *config.Manager
+	sessionMgr   *session.Manager
+	agentRouter  *agent.Router
+	healthCheck  *health.Checker
+	log          *logger.Logger
+	mu           sync.RWMutex
+	clients      map[chan string]bool
+	messages     []DebugMessage
+	maxMsgs      int
 	feishuHandler http.HandlerFunc
+	toolsHandler  *ToolsHandler
 }
 
 // DebugMessage 调试消息
@@ -63,15 +64,18 @@ func (s *Server) SetFeishuHandler(handler http.HandlerFunc) {
 	s.feishuHandler = handler
 }
 
+// SetToolsHandler 设置工具处理器
+func (s *Server) SetToolsHandler(handler *ToolsHandler) {
+	s.toolsHandler = handler
+}
+
 // Start 启动Web服务器
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
 
-	// 静态文件
 	mux.HandleFunc("/", s.handleIndex)
 	mux.HandleFunc("/static/", s.handleStatic)
 
-	// API端点
 	mux.HandleFunc("/api/status", s.handleStatus)
 	mux.HandleFunc("/api/logs", s.handleLogs)
 	mux.HandleFunc("/api/sessions", s.handleSessions)
@@ -80,8 +84,15 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/send", s.handleSendMessage)
 	mux.HandleFunc("/api/messages/stream", s.handleMessageStream)
 
-	// 飞书Webhook
 	mux.HandleFunc("/webhook/feishu", s.handleFeishuWebhook)
+
+	if s.toolsHandler != nil {
+		mux.HandleFunc("/api/tools", s.toolsHandler.ListTools)
+		mux.HandleFunc("/api/tools/toggle", s.toolsHandler.ToggleTool)
+		mux.HandleFunc("/api/tools/custom", s.handleCustomAPIs)
+		mux.HandleFunc("/api/llm/presets", s.toolsHandler.ListLLMPresets)
+		mux.HandleFunc("/api/language", s.handleLanguage)
+	}
 
 	s.log.Info("web server starting", "port", s.port)
 
@@ -360,6 +371,44 @@ func (s *Server) handleFeishuWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.feishuHandler(w, r)
+}
+
+// handleCustomAPIs 处理自定义API
+func (s *Server) handleCustomAPIs(w http.ResponseWriter, r *http.Request) {
+	if s.toolsHandler == nil {
+		http.Error(w, "Tools handler not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.toolsHandler.ListCustomAPIs(w, r)
+	case http.MethodPost:
+		s.toolsHandler.AddCustomAPI(w, r)
+	case http.MethodPut:
+		s.toolsHandler.UpdateCustomAPI(w, r)
+	case http.MethodDelete:
+		s.toolsHandler.DeleteCustomAPI(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleLanguage 处理语言设置
+func (s *Server) handleLanguage(w http.ResponseWriter, r *http.Request) {
+	if s.toolsHandler == nil {
+		http.Error(w, "Tools handler not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		s.toolsHandler.GetLanguage(w, r)
+	case http.MethodPost:
+		s.toolsHandler.SetLanguage(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 // indexHTML 首页HTML

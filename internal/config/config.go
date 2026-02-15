@@ -217,6 +217,23 @@ func (m *Manager) Get() *Config {
 	return m.config
 }
 
+// Update 更新配置
+func (m *Manager) Update(cfg *Config) {
+	m.mu.Lock()
+	m.config = cfg
+	m.mu.Unlock()
+
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		m.log.Error("failed to marshal config", "error", err)
+		return
+	}
+
+	if err := os.WriteFile(m.configPath, data, 0644); err != nil {
+		m.log.Error("failed to write config", "error", err)
+	}
+}
+
 // OnChange 注册配置变更回调
 func (m *Manager) OnChange(fn func(*Config)) {
 	m.mu.Lock()
