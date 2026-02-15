@@ -135,6 +135,9 @@ func (m *Manager) registerBuiltinTools() {
 	m.Register(&ApplyPatchTool{manager: m})
 	m.Register(&WebSearchTool{manager: m})
 	m.Register(&HTTPRequestTool{manager: m})
+	m.Register(&WeatherTool{manager: m})
+	m.Register(&IPInfoTool{manager: m})
+	m.Register(&ExchangeRateTool{manager: m})
 	m.Register(&GrepTool{manager: m})
 	m.Register(&MemoryReadTool{manager: m})
 	m.Register(&MemoryWriteTool{manager: m})
@@ -447,7 +450,7 @@ func (t *GetSystemInfoTool) Description() string {
 
 func (t *GetSystemInfoTool) Parameters() map[string]interface{} {
 	return map[string]interface{}{
-		"type": "object",
+		"type":       "object",
 		"properties": map[string]interface{}{},
 	}
 }
@@ -741,6 +744,191 @@ func (t *HTTPRequestTool) Execute(args map[string]interface{}) (string, error) {
 	}
 
 	return content, nil
+}
+
+// WeatherTool 天气查询工具
+type WeatherTool struct {
+	manager *Manager
+}
+
+func (t *WeatherTool) Name() string {
+	return "weather"
+}
+
+func (t *WeatherTool) Description() string {
+	return "查询城市天气。使用wttr.in免费API，无需API密钥。"
+}
+
+func (t *WeatherTool) Parameters() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"city": map[string]interface{}{
+				"type":        "string",
+				"description": "城市名称，如 Beijing, Shanghai, Tokyo",
+			},
+			"format": map[string]interface{}{
+				"type":        "string",
+				"description": "格式: 1(简洁), 2(详细), 3(完整), 默认1",
+			},
+		},
+		"required": []string{"city"},
+	}
+}
+
+func (t *WeatherTool) Execute(args map[string]interface{}) (string, error) {
+	city, ok := args["city"].(string)
+	if !ok || city == "" {
+		return "", fmt.Errorf("city is required")
+	}
+
+	format := "1"
+	if f, ok := args["format"].(string); ok && f != "" {
+		format = f
+	}
+
+	// wttr.in 免费天气API
+	url := fmt.Sprintf("https://wttr.in/%s?format=%s&lang=zh", city, format)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("weather request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("weather API returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read weather response: %w", err)
+	}
+
+	return string(body), nil
+}
+
+// IPInfoTool IP信息查询工具
+type IPInfoTool struct {
+	manager *Manager
+}
+
+func (t *IPInfoTool) Name() string {
+	return "ip_info"
+}
+
+func (t *IPInfoTool) Description() string {
+	return "查询IP地址信息。可查询本机或指定IP的地理位置。"
+}
+
+func (t *IPInfoTool) Parameters() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"ip": map[string]interface{}{
+				"type":        "string",
+				"description": "IP地址，留空查询本机",
+			},
+		},
+		"required": []string{},
+	}
+}
+
+func (t *IPInfoTool) Execute(args map[string]interface{}) (string, error) {
+	ip := ""
+	if i, ok := args["ip"].(string); ok {
+		ip = i
+	}
+
+	// ipapi.co 免费API
+	url := "https://ipapi.co/json/"
+	if ip != "" {
+		url = fmt.Sprintf("https://ipapi.co/%s/json/", ip)
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("ip info request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ip API returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read ip response: %w", err)
+	}
+
+	return string(body), nil
+}
+
+// ExchangeRateTool 汇率查询工具
+type ExchangeRateTool struct {
+	manager *Manager
+}
+
+func (t *ExchangeRateTool) Name() string {
+	return "exchange_rate"
+}
+
+func (t *ExchangeRateTool) Description() string {
+	return "查询货币汇率。使用 exchangerate-api.com 免费API。"
+}
+
+func (t *ExchangeRateTool) Parameters() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"from": map[string]interface{}{
+				"type":        "string",
+				"description": "源货币代码，如 USD, CNY, EUR",
+			},
+			"to": map[string]interface{}{
+				"type":        "string",
+				"description": "目标货币代码，如 CNY, USD, EUR",
+			},
+		},
+		"required": []string{"from", "to"},
+	}
+}
+
+func (t *ExchangeRateTool) Execute(args map[string]interface{}) (string, error) {
+	from, ok := args["from"].(string)
+	if !ok || from == "" {
+		return "", fmt.Errorf("from currency is required")
+	}
+	from = strings.ToUpper(from)
+
+	to, ok := args["to"].(string)
+	if !ok || to == "" {
+		return "", fmt.Errorf("to currency is required")
+	}
+	to = strings.ToUpper(to)
+
+	// exchangerate-api.com 免费API
+	url := fmt.Sprintf("https://api.exchangerate-api.com/v4/latest/%s", from)
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("exchange rate request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("exchange API returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read exchange response: %w", err)
+	}
+
+	return string(body), nil
 }
 
 type GrepTool struct {
