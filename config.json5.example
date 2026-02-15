@@ -1,142 +1,70 @@
 {
-  // ============================================
-  // Mujibot 配置文件
-  // 支持JSON5格式：注释、尾随逗号
-  // 环境变量使用 ${VAR_NAME} 语法
-  // ============================================
-
-  // 服务器配置
-  server: {
-    port: 8080,              // Web服务器和API端口
-    healthCheck: true,       // 启用健康检查端点
+  "server": {
+    "port": 8080,
+    "healthCheck": true
   },
 
-  // 消息渠道配置
-  channels: {
-    // Telegram 配置
-    telegram: {
-      enabled: false,
-      token: "${TELEGRAM_BOT_TOKEN}",
-      allowedUsers: [],      // 允许的用户ID列表，为空表示允许所有
+  "channels": {
+    "telegram": {
+      "enabled": false,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowedUsers": []
     },
-
-    // Discord 配置
-    discord: {
-      enabled: false,
-      token: "${DISCORD_BOT_TOKEN}",
-      allowedGuilds: [],     // 允许的Guild ID列表
+    "discord": {
+      "enabled": false,
+      "token": "${DISCORD_BOT_TOKEN}",
+      "allowedGuilds": []
     },
-
-    // 飞书配置
-    feishu: {
-      enabled: false,
-      appId: "${FEISHU_APP_ID}",
-      appSecret: "${FEISHU_APP_SECRET}",
-      encryptKey: "${FEISHU_ENCRYPT_KEY}",  // 可选，用于事件加密
-      allowedUsers: [],      // 允许的用户OpenID列表
-    },
+    "feishu": {
+      "enabled": false,
+      "appId": "${FEISHU_APP_ID}",
+      "appSecret": "${FEISHU_APP_SECRET}",
+      "encryptKey": "${FEISHU_ENCRYPT_KEY}",
+      "allowedUsers": []
+    }
   },
 
-  // LLM提供商配置
-  llm: {
-    // 提供商: openai | anthropic | ollama
-    provider: "openai",
-
-    // 模型名称
-    model: "gpt-4o-mini",
-
-    // API密钥（从环境变量读取）
-    apiKey: "${OPENAI_API_KEY}",
-
-    // 基础URL（可选，用于兼容API如DeepSeek、Moonshot）
-    baseURL: "",
-
-    // 请求超时（秒）
-    timeout: 60,
-
-    // 最大重试次数
-    maxRetries: 3,
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "apiKey": "${OPENAI_API_KEY}",
+    "baseURL": "",
+    "timeout": 60,
+    "maxRetries": 3
   },
 
-  // 智能体配置
-  agents: {
-    default: {
-      name: "Mujibot",
-      systemPrompt: "你是一个运行在低功耗ARM设备上的AI助手。你高效、简洁、helpful。你可以使用工具来帮助用户完成任务。",
-      tools: [
-        "read_file",
-        "write_file",
-        "list_directory",
-        "execute_command",
-        "get_system_info",
-      ],
-    },
-
-    // 可以添加更多智能体
-    // coder: {
-    //   name: "Code Assistant",
-    //   systemPrompt: "你是一个编程助手，擅长Go、Python和Shell脚本。",
-    //   tools: ["read_file", "write_file", "execute_command"],
-    // },
+  "agents": {
+    "default": {
+      "name": "Mujibot",
+      "systemPrompt": "你是一个运行在低功耗ARM设备上的AI助手。你高效、简洁、helpful。你可以使用工具来帮助用户完成任务。",
+      "tools": ["read_file", "write_file", "list_directory", "execute_command", "get_system_info"]
+    }
   },
 
-  // 工具系统配置
-  tools: {
-    // 工作目录（工具只能访问此目录下的文件）
-    workDir: "/opt/mujibot/workspace",
-
-    // 命令执行超时（秒）
-    timeout: 30,
-
-    // 危险命令需要确认
-    confirmDangerous: true,
-
-    // 允许的命令列表（为空表示允许所有非禁止命令）
-    allowedCommands: [],
-
-    // 禁止的命令列表
-    blockedCommands: [
-      "reboot",
-      "shutdown",
-      "init",
-      "poweroff",
-      "halt",
-      "mkfs",
-      "fdisk",
-    ],
+  "tools": {
+    "workDir": "/opt/mujibot/workspace",
+    "timeout": 30,
+    "confirmDangerous": true,
+    "allowedCommands": [],
+    "blockedCommands": ["reboot", "shutdown", "init", "poweroff", "halt", "mkfs", "fdisk"]
   },
 
-  // 会话管理配置
-  session: {
-    // 每个会话最大保留消息数
-    maxMessages: 20,
-
-    // 会话空闲超时（秒）
-    idleTimeout: 3600,
-
-    // 最大并发会话数
-    maxSessions: 100,
+  "session": {
+    "maxMessages": 20,
+    "idleTimeout": 3600,
+    "maxSessions": 100
   },
 
-  // 日志配置
-  logging: {
-    // 日志级别: debug | info | warn | error
-    level: "info",
-
-    // 日志文件路径（为空则输出到stdout）
-    file: "/var/log/mujibot/app.log",
-
-    // 日志文件最大大小（MB）
-    maxSize: 5,
-
-    // 日志格式: json | text
-    format: "json",
+  "logging": {
+    "level": "info",
+    "file": "/var/log/mujibot/app.log",
+    "maxSize": 5,
+    "format": "json"
   },
 
-  // 记忆系统配置（可选）
-  memory: {
-    enabled: true,
-    memoryDir: "./memory",
-    maxFileSize: 102400,  // 100KB
-  },
+  "memory": {
+    "enabled": true,
+    "memoryDir": "./memory",
+    "maxFileSize": 102400
+  }
 }

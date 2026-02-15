@@ -3,6 +3,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -212,6 +213,8 @@ func (g *Gateway) Start() error {
 	if cfg.Channels.Feishu.Enabled {
 		if err := g.startFeishu(); err != nil {
 			g.log.Error("failed to start feishu", "error", err)
+		} else {
+			g.webServer.SetFeishuHandler(g.GetFeishuWebhookHandler())
 		}
 	}
 
@@ -315,7 +318,6 @@ func (g *Gateway) startFeishu() error {
 	cfg := g.config.Get()
 	g.feishuBot = feishu.NewBot(cfg.Channels.Feishu, g.log)
 
-	// 注册消息处理器
 	g.feishuBot.OnMessage(func(userID, username, content string) (string, error) {
 		return g.handleMessage("feishu", userID, username, content)
 	})
@@ -326,6 +328,16 @@ func (g *Gateway) startFeishu() error {
 
 	g.log.Info("feishu bot started")
 	return nil
+}
+
+// GetFeishuWebhookHandler 获取飞书Webhook处理器
+func (g *Gateway) GetFeishuWebhookHandler() http.HandlerFunc {
+	if g.feishuBot == nil {
+		return func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "Feishu not enabled", http.StatusServiceUnavailable)
+		}
+	}
+	return g.feishuBot.GetWebhookHandler()
 }
 
 // handleMessage 处理消息

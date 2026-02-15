@@ -20,16 +20,17 @@ import (
 
 // Server Web服务器
 type Server struct {
-	port      int
-	config    *config.Manager
+	port       int
+	config     *config.Manager
 	sessionMgr *session.Manager
 	agentRouter *agent.Router
 	healthCheck *health.Checker
-	log       *logger.Logger
-	mu        sync.RWMutex
-	clients   map[chan string]bool
-	messages  []DebugMessage
-	maxMsgs   int
+	log        *logger.Logger
+	mu         sync.RWMutex
+	clients    map[chan string]bool
+	messages   []DebugMessage
+	maxMsgs    int
+	feishuHandler http.HandlerFunc
 }
 
 // DebugMessage 调试消息
@@ -55,6 +56,11 @@ func NewServer(port int, cfg *config.Manager, sessionMgr *session.Manager, agent
 		messages:    make([]DebugMessage, 0, 100),
 		maxMsgs:     100,
 	}
+}
+
+// SetFeishuHandler 设置飞书Webhook处理器
+func (s *Server) SetFeishuHandler(handler http.HandlerFunc) {
+	s.feishuHandler = handler
 }
 
 // Start 启动Web服务器
@@ -349,9 +355,11 @@ func (s *Server) handleMessageStream(w http.ResponseWriter, r *http.Request) {
 
 // handleFeishuWebhook 处理飞书Webhook
 func (s *Server) handleFeishuWebhook(w http.ResponseWriter, r *http.Request) {
-	// 转发到飞书bot处理
-	// 实际实现需要在gateway中集成
-	http.Error(w, "Not implemented", http.StatusNotImplemented)
+	if s.feishuHandler == nil {
+		http.Error(w, "Feishu not enabled", http.StatusServiceUnavailable)
+		return
+	}
+	s.feishuHandler(w, r)
 }
 
 // indexHTML 首页HTML
