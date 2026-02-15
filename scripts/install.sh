@@ -6,7 +6,7 @@
 set -e
 
 APP_NAME="mujibot"
-VERSION="1.0.0"
+VERSION="1.0.1"
 INSTALL_DIR="/opt/mujibot"
 BIN_DIR="/usr/local/bin"
 CONFIG_FILE="$INSTALL_DIR/config.json5"
