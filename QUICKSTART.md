@@ -102,9 +102,9 @@ sudo mujibot --config /opt/mujibot/config.json5
 访问 `http://<你的IP>:8080`
 
 功能：
-- 📊 实时系统状态
-- 📜 消息日志
-- 💬 直接发送测试消息
+- 实时系统状态
+- 消息日志
+- 直接发送测试消息
 
 ### API
 
