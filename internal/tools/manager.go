@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -207,44 +208,33 @@ func (m *Manager) sanitizePath(path string) (string, error) {
 	return path, nil
 }
 
-// isDangerousCommand 检查是否为危险命令
-func (m *Manager) isDangerousCommand(cmd string) bool {
+func isDangerousCommand(cmd string) bool {
 	dangerousPatterns := []string{
-		`\brm\s+-rf\b`,
-		`\bdd\s+`,
-		`\bmkfs\b`,
-		`\bchmod\s+777\b`,
-		`\b>\s*/dev/`,
-		`\b:\(\)\{\s*:\|\:&\};`,
+		"rm -rf",
+		"rm -r",
+		"rm -f",
+		"del /",
+		"format",
+		"fdisk",
+		"mkfs",
+		"dd if=",
+		"chmod 777",
+		"chown -R",
+		"> /dev/",
+		":(){ :|:& };:",
+		"wget | sh",
+		"curl | sh",
+		"curl | bash",
 	}
 
 	for _, pattern := range dangerousPatterns {
-		if matched, _ := regexp.MatchString(pattern, cmd); matched {
+		if strings.Contains(cmd, pattern) {
 			return true
 		}
 	}
-
 	return false
 }
 
-// isBlockedCommand 检查是否为禁止命令
-func (m *Manager) isBlockedCommand(cmd string) bool {
-	parts := strings.Fields(cmd)
-	if len(parts) == 0 {
-		return false
-	}
-
-	baseCmd := filepath.Base(parts[0])
-	for _, blocked := range m.blockedCommands {
-		if baseCmd == blocked {
-			return true
-		}
-	}
-
-	return false
-}
-
-// ReadFileTool 读取文件工具
 type ReadFileTool struct {
 	manager *Manager
 }
@@ -447,17 +437,31 @@ func (t *ExecuteCommandTool) Execute(args map[string]interface{}) (string, error
 		return "", fmt.Errorf("command is required")
 	}
 
-	// 检查禁止命令
-	if t.manager.isBlockedCommand(command) {
-		return "", fmt.Errorf("command is blocked for security reasons")
+	blockedCommand := ""
+	for _, blocked := range t.manager.blockedCommands {
+		if strings.Contains(command, blocked) {
+			blockedCommand = blocked
+			break
+		}
 	}
 
-	// 检查危险命令
-	if t.manager.isDangerousCommand(command) {
-		if t.manager.confirmDangerous {
+	isDangerous := isDangerousCommand(command)
+	needsConfirmation := false
+	confirmationMsg := ""
+
+	if blockedCommand != "" {
+		needsConfirmation = true
+		confirmationMsg = fmt.Sprintf("命令包含黑名单命令: %s，需要确认", blockedCommand)
+	} else if isDangerous {
+		needsConfirmation = true
+		confirmationMsg = "危险命令需要确认"
+	}
+
+	if needsConfirmation {
+		if t.manager.confirmDangerous && !t.manager.unattendedMode {
 			confirmed, _ := args["confirm"].(bool)
 			if !confirmed {
-				return "", fmt.Errorf("dangerous command detected, set confirm=true to execute")
+				return "", fmt.Errorf("%s。设置 confirm=true 来执行", confirmationMsg)
 			}
 		}
 	}
@@ -465,7 +469,12 @@ func (t *ExecuteCommandTool) Execute(args map[string]interface{}) (string, error
 	ctx, cancel := context.WithTimeout(context.Background(), t.manager.timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "sh", "-c", command)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.CommandContext(ctx, "cmd", "/c", command)
+	} else {
+		cmd = exec.CommandContext(ctx, "sh", "-c", command)
+	}
 	cmd.Dir = t.manager.workDir
 
 	output, err := cmd.CombinedOutput()

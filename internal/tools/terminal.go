@@ -116,20 +116,38 @@ func (t *TerminalTool) runCommand(command string, timeout int, background bool) 
 		return "", fmt.Errorf("terminal is disabled in config")
 	}
 
+	var blockedCommand string
 	for _, blocked := range cfg.BlockedCommands {
 		if strings.Contains(command, blocked) {
-			return "", fmt.Errorf("command blocked: %s", blocked)
+			blockedCommand = blocked
+			break
 		}
 	}
 
-	if confirmation.IsDangerousOperation(command) {
+	isDangerous := confirmation.IsDangerousOperation(command)
+	needsConfirmation := false
+	confirmationDetails := ""
+
+	if blockedCommand != "" {
+		needsConfirmation = true
+		confirmationDetails = fmt.Sprintf("命令包含黑名单命令: %s，需要用户确认", blockedCommand)
+	} else if isDangerous {
+		needsConfirmation = true
+		confirmationDetails = "危险命令需要用户确认"
+	}
+
+	if needsConfirmation {
 		if cfg.ConfirmDangerous && !cfg.UnattendedMode {
+			riskLevel := "high"
+			if blockedCommand != "" {
+				riskLevel = "critical"
+			}
 			approved, err := t.confirmMgr.RequestConfirmation(
 				context.Background(),
 				"terminal",
 				command,
-				"危险命令需要用户确认",
-				"high",
+				confirmationDetails,
+				riskLevel,
 			)
 			if err != nil {
 				return "", fmt.Errorf("confirmation failed: %w", err)
