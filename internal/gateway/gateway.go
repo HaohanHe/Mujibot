@@ -128,6 +128,7 @@ func (g *Gateway) initComponents() error {
 		Timeout:          cfg.Tools.Timeout,
 		ConfirmDangerous: cfg.Tools.ConfirmDangerous,
 		BlockedCommands:  cfg.Tools.BlockedCommands,
+		EnabledTools:     cfg.Tools.EnabledTools,
 		MemoryMgr:        memoryMgr,
 	}
 	toolMgr, err := tools.NewManager(toolCfg, g.log)

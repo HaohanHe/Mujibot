@@ -32,6 +32,7 @@ type Manager struct {
 	timeout          time.Duration
 	confirmDangerous bool
 	blockedCommands  []string
+	enabledTools     map[string]bool
 	memoryMgr        *memory.Manager
 	log              *logger.Logger
 }
@@ -43,6 +44,7 @@ type Config struct {
 	ConfirmDangerous bool
 	AllowedCommands  []string
 	BlockedCommands  []string
+	EnabledTools     map[string]bool // 工具开关
 	MemoryMgr        *memory.Manager
 }
 
@@ -59,6 +61,7 @@ func NewManager(cfg Config, log *logger.Logger) (*Manager, error) {
 		timeout:          time.Duration(cfg.Timeout) * time.Second,
 		confirmDangerous: cfg.ConfirmDangerous,
 		blockedCommands:  cfg.BlockedCommands,
+		enabledTools:     cfg.EnabledTools,
 		memoryMgr:        cfg.MemoryMgr,
 		log:              log,
 	}
@@ -125,22 +128,34 @@ func (m *Manager) GetToolDefinitions() []map[string]interface{} {
 	return defs
 }
 
-// registerBuiltinTools 注册内置工具
+// registerBuiltinTools 注册内置工具（根据配置开关）
 func (m *Manager) registerBuiltinTools() {
-	m.Register(&ReadFileTool{manager: m})
-	m.Register(&WriteFileTool{manager: m})
-	m.Register(&ListDirectoryTool{manager: m})
-	m.Register(&ExecuteCommandTool{manager: m})
-	m.Register(&GetSystemInfoTool{manager: m})
-	m.Register(&ApplyPatchTool{manager: m})
-	m.Register(&WebSearchTool{manager: m})
-	m.Register(&HTTPRequestTool{manager: m})
-	m.Register(&WeatherTool{manager: m})
-	m.Register(&IPInfoTool{manager: m})
-	m.Register(&ExchangeRateTool{manager: m})
-	m.Register(&GrepTool{manager: m})
-	m.Register(&MemoryReadTool{manager: m})
-	m.Register(&MemoryWriteTool{manager: m})
+	allTools := []Tool{
+		&ReadFileTool{manager: m},
+		&WriteFileTool{manager: m},
+		&ListDirectoryTool{manager: m},
+		&ExecuteCommandTool{manager: m},
+		&GetSystemInfoTool{manager: m},
+		&ApplyPatchTool{manager: m},
+		&WebSearchTool{manager: m},
+		&HTTPRequestTool{manager: m},
+		&WeatherTool{manager: m},
+		&IPInfoTool{manager: m},
+		&ExchangeRateTool{manager: m},
+		&GrepTool{manager: m},
+		&MemoryReadTool{manager: m},
+		&MemoryWriteTool{manager: m},
+	}
+
+	for _, tool := range allTools {
+		name := tool.Name()
+		// 如果配置中有指定，按配置；否则默认启用
+		if enabled, ok := m.enabledTools[name]; ok && !enabled {
+			m.log.Info("tool disabled by config", "name", name)
+			continue
+		}
+		m.Register(tool)
+	}
 }
 
 // sanitizePath 清理路径，确保在工作目录内

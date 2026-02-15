@@ -80,11 +80,25 @@ type AgentConfig struct {
 
 // ToolsConfig 工具配置
 type ToolsConfig struct {
-	WorkDir          string   `json:"workDir"`
-	Timeout          int      `json:"timeout"`
-	ConfirmDangerous bool     `json:"confirmDangerous"`
-	AllowedCommands  []string `json:"allowedCommands"`
-	BlockedCommands  []string `json:"blockedCommands"`
+	WorkDir          string              `json:"workDir"`
+	Timeout          int                 `json:"timeout"`
+	ConfirmDangerous bool                `json:"confirmDangerous"`
+	AllowedCommands  []string            `json:"allowedCommands"`
+	BlockedCommands  []string            `json:"blockedCommands"`
+	EnabledTools     map[string]bool     `json:"enabledTools"`     // 工具开关
+	CustomAPIs       []CustomAPIConfig   `json:"customAPIs"`       // 用户自定义API
+}
+
+// CustomAPIConfig 自定义API配置
+type CustomAPIConfig struct {
+	Name        string            `json:"name"`        // API名称
+	Description string            `json:"description"` // 描述
+	URL         string            `json:"url"`         // API URL模板
+	Method      string            `json:"method"`      // HTTP方法
+	Headers     map[string]string `json:"headers"`     // 请求头
+	APIKey      string            `json:"apiKey"`      // API密钥
+	Timeout     int               `json:"timeout"`     // 超时时间
+	Enabled     bool              `json:"enabled"`     // 是否启用
 }
 
 // SessionConfig 会话配置
@@ -247,7 +261,34 @@ func (m *Manager) createDefaultConfig() error {
     "timeout": 30,
     "confirmDangerous": true,
     "allowedCommands": [],
-    "blockedCommands": ["reboot", "shutdown", "init", "poweroff", "halt"]
+    "blockedCommands": ["reboot", "shutdown", "init", "poweroff", "halt"],
+    "enabledTools": {
+      "read_file": true,
+      "write_file": true,
+      "list_directory": true,
+      "execute_command": true,
+      "web_search": true,
+      "http_request": true,
+      "weather": true,
+      "ip_info": true,
+      "exchange_rate": true,
+      "memory_read": true,
+      "memory_write": true
+    },
+    "customAPIs": [
+      {
+        "name": "example_api",
+        "description": "示例自定义API",
+        "url": "https://api.example.com/data?q={query}",
+        "method": "GET",
+        "headers": {
+          "Authorization": "Bearer {apiKey}"
+        },
+        "apiKey": "${EXAMPLE_API_KEY}",
+        "timeout": 10,
+        "enabled": false
+      }
+    ]
   },
   "session": {
     "maxMessages": 20,
