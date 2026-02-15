@@ -1,0 +1,70 @@
+{
+  "server": {
+    "port": 8080,
+    "healthCheck": true
+  },
+
+  "channels": {
+    "telegram": {
+      "enabled": false,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowedUsers": []
+    },
+    "discord": {
+      "enabled": false,
+      "token": "${DISCORD_BOT_TOKEN}",
+      "allowedGuilds": []
+    },
+    "feishu": {
+      "enabled": false,
+      "appId": "${FEISHU_APP_ID}",
+      "appSecret": "${FEISHU_APP_SECRET}",
+      "encryptKey": "${FEISHU_ENCRYPT_KEY}",
+      "allowedUsers": []
+    }
+  },
+
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "apiKey": "${OPENAI_API_KEY}",
+    "baseURL": "",
+    "timeout": 60,
+    "maxRetries": 3
+  },
+
+  "agents": {
+    "default": {
+      "name": "Mujibot",
+      "systemPrompt": "你是一个运行在低功耗ARM设备上的AI助手。你高效、简洁、helpful。你可以使用工具来帮助用户完成任务。",
+      "tools": ["read_file", "write_file", "list_directory", "execute_command", "get_system_info"]
+    }
+  },
+
+  "tools": {
+    "workDir": "/opt/mujibot/workspace",
+    "timeout": 30,
+    "confirmDangerous": true,
+    "allowedCommands": [],
+    "blockedCommands": ["reboot", "shutdown", "init", "poweroff", "halt", "mkfs", "fdisk"]
+  },
+
+  "session": {
+    "maxMessages": 20,
+    "idleTimeout": 3600,
+    "maxSessions": 100
+  },
+
+  "logging": {
+    "level": "info",
+    "file": "/var/log/mujibot/app.log",
+    "maxSize": 5,
+    "format": "json"
+  },
+
+  "memory": {
+    "enabled": true,
+    "memoryDir": "./memory",
+    "maxFileSize": 102400
+  }
+}

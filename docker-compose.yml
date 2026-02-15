@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mujibot:
+    build: .
+    image: mujibot:latest
+    container_name: mujibot
+    restart: unless-stopped
+    
+    ports:
+      - "8080:8080"
+    
+    volumes:
+      # 配置文件
+      - ./config.json5:/config.json5:ro
+      # 工作目录
+      - ./workspace:/opt/mujibot/workspace
+      # 日志目录
+      - ./logs:/var/log/mujibot
+      # 记忆目录（可选）
+      - ./memory:/memory
+    
+    environment:
+      # Telegram
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      # Discord
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN:-}
+      # Feishu
+      - FEISHU_APP_ID=${FEISHU_APP_ID:-}
+      - FEISHU_APP_SECRET=${FEISHU_APP_SECRET:-}
+      - FEISHU_ENCRYPT_KEY=${FEISHU_ENCRYPT_KEY:-}
+      # LLM
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Go运行时优化
+      - GOGC=100
+      - GOMEMLIMIT=80MiB
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 20M
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "/mujibot", "--health-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

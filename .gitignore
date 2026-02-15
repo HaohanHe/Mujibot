@@ -1,0 +1,65 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+mujibot
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Build directories
+/build/
+/dist/
+/bin/
+
+# IDE
+.idea/
+.vscode/
+.kiro/
+*.swp
+*.swo
+*~
+
+# Internal docs (not for release)
+COMPARISON.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config files (may contain secrets)
+config.json5
+config.yaml
+config.yml
+.env
+
+# Log files
+*.log
+/logs/
+
+# Data directories
+/data/
+/workspace/
+/memory/
+
+# Temporary files
+/tmp/
+*.tmp
+
+# UPX compressed backups
+*.~*
+
+# Dependency directories
+vendor/
+
+# Coverage
+coverage.txt
+coverage.html
