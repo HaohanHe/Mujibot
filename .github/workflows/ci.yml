@@ -64,6 +64,7 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
+          cd $GITHUB_WORKSPACE
           VERSION=${{ github.ref_name }}
           BINARY_NAME=mujibot-${VERSION}-${GOOS}-${GOARCH}
           if [ "$GOOS" = "windows" ]; then
