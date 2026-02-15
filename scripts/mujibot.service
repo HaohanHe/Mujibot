@@ -17,13 +17,15 @@ ExecStart=/usr/local/bin/mujibot --config /opt/mujibot/config.json5
 
 # 重启策略
 Restart=always
-RestartSec=5
-StartLimitInterval=60s
-StartLimitBurst=3
+RestartSec=5s
+StartLimitInterval=300s
+StartLimitBurst=5
+StartLimitAction=reset-failed
 
 # 优雅停止
 TimeoutStopSec=30
 KillSignal=SIGTERM
+KillMode=mixed
 
 # 资源限制（针对低配置设备优化）
 # 内存限制：最大100MB

@@ -36,6 +36,7 @@ type Gateway struct {
 	llmProvider llm.Provider
 	agentRouter *agent.Router
 	healthCheck *health.Checker
+	memoryGuard *health.MemoryGuard
 	webServer   *web.Server
 
 	// 渠道
@@ -162,6 +163,12 @@ func (g *Gateway) initComponents() error {
 	// 创建健康检查器
 	g.healthCheck = health.NewChecker(g.log)
 
+	// 创建内存保护器
+	g.memoryGuard = health.NewMemoryGuard(g.log, func() {
+		g.log.Error("critical memory situation, initiating graceful shutdown")
+		g.Stop()
+	})
+
 	// 创建Web服务器
 	g.webServer = web.NewServer(
 		cfg.Server.Port,
@@ -222,6 +229,9 @@ func (g *Gateway) Start() error {
 	g.wg.Add(1)
 	go g.monitorLoop()
 
+	// 启动内存保护器
+	g.memoryGuard.Start()
+
 	// 等待退出信号
 	g.waitForShutdown()
 
@@ -239,6 +249,11 @@ func (g *Gateway) Stop() {
 	g.mu.Unlock()
 
 	g.log.Info("gateway stopping")
+
+	// 停止内存保护器
+	if g.memoryGuard != nil {
+		g.memoryGuard.Stop()
+	}
 
 	// 取消上下文
 	if g.cancel != nil {
