@@ -56,12 +56,14 @@ A:
 
 A: 可以，配置 `baseURL` 即可：
 
-```json5
-llm: {
-  provider: "openai",
-  model: "deepseek-chat",
-  apiKey: "${DEEPSEEK_API_KEY}",
-  baseURL: "https://api.deepseek.com/v1",
+```json
+{
+  "llm": {
+    "provider": "openai",
+    "model": "deepseek-chat",
+    "apiKey": "${DEEPSEEK_API_KEY}",
+    "baseURL": "https://api.deepseek.com/v1"
+  }
 }
 ```
 
@@ -74,12 +76,14 @@ llm: {
 
 A:
 
-```json5
-llm: {
-  provider: "ollama",
-  model: "llama2",
-  apiKey: "",  // 不需要
-  baseURL: "http://localhost:11434",
+```json
+{
+  "llm": {
+    "provider": "ollama",
+    "model": "llama2",
+    "apiKey": "",
+    "baseURL": "http://localhost:11434"
+  }
 }
 ```
 
@@ -126,11 +130,13 @@ curl http://localhost:8080/api/status | jq .memory
 ```
 
 2. 调整会话配置
-```json5
-session: {
-  maxMessages: 10,      // 减少保留消息数
-  idleTimeout: 1800,    // 减少空闲超时
-  maxSessions: 50,      // 减少最大会话数
+```json
+{
+  "session": {
+    "maxMessages": 10,
+    "idleTimeout": 1800,
+    "maxSessions": 50
+  }
 }
 ```
 
@@ -184,17 +190,19 @@ func (t *MyTool) Execute(args map[string]interface{}) (string, error) {
 
 A: 在配置中添加：
 
-```json5
-agents: {
-  default: {
-    name: "Mujibot",
-    systemPrompt: "通用助手",
-  },
-  coder: {
-    name: "Code Assistant",
-    systemPrompt: "编程专家",
-    tools: ["read_file", "write_file"],
-  },
+```json
+{
+  "agents": {
+    "default": {
+      "name": "Mujibot",
+      "systemPrompt": "通用助手"
+    },
+    "coder": {
+      "name": "Code Assistant",
+      "systemPrompt": "编程专家",
+      "tools": ["read_file", "write_file"]
+    }
+  }
 }
 ```
 
@@ -202,13 +210,15 @@ agents: {
 
 A: 在渠道配置中设置白名单：
 
-```json5
-channels: {
-  telegram: {
-    enabled: true,
-    token: "${TELEGRAM_BOT_TOKEN}",
-    allowedUsers: [123456789, 987654321],
-  },
+```json
+{
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowedUsers": [123456789, 987654321]
+    }
+  }
 }
 ```
 
@@ -294,11 +304,13 @@ A: 工具系统有多层安全保护：
 
 A: 在智能体配置中指定允许的工具：
 
-```json5
-agents: {
-  default: {
-    tools: ["read_file", "list_directory"],  // 只允许安全工具
-  },
+```json
+{
+  "agents": {
+    "default": {
+      "tools": ["read_file", "list_directory"]
+    }
+  }
 }
 ```
 
@@ -308,10 +320,12 @@ agents: {
 
 A: 修改配置：
 
-```json5
-logging: {
-  level: "debug",
-  file: "/var/log/mujibot/debug.log",
+```json
+{
+  "logging": {
+    "level": "debug",
+    "file": "/var/log/mujibot/debug.log"
+  }
 }
 ```
 

@@ -50,20 +50,20 @@ sudo nano /opt/mujibot/config.json5
 
 关键配置项：
 
-```json5
+```json
 {
-  llm: {
-    provider: "openai",
-    model: "gpt-4o-mini",
-    apiKey: "${OPENAI_API_KEY}",
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "apiKey": "${OPENAI_API_KEY}"
   },
-  channels: {
-    telegram: {
-      enabled: true,
-      token: "${TELEGRAM_BOT_TOKEN}",
-      allowedUsers: [123456789],  // 你的Telegram用户ID
-    },
-  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowedUsers": [123456789]
+    }
+  }
 }
 ```
 

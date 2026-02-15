@@ -102,76 +102,63 @@ sudo systemctl enable --now mujibot
 
 ### 配置文件示例
 
-```json5
+```json
 {
-  // 服务器配置
-  server: {
-    port: 8080,
-    healthCheck: true,
+  "server": {
+    "port": 8080,
+    "healthCheck": true
   },
-
-  // 消息渠道配置
-  channels: {
-    telegram: {
-      enabled: true,
-      token: "${TELEGRAM_BOT_TOKEN}",
-      allowedUsers: [123456789],
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "${TELEGRAM_BOT_TOKEN}",
+      "allowedUsers": [123456789]
     },
-    discord: {
-      enabled: false,
-      token: "${DISCORD_BOT_TOKEN}",
-      allowedGuilds: [],
+    "discord": {
+      "enabled": false,
+      "token": "${DISCORD_BOT_TOKEN}",
+      "allowedGuilds": []
     },
-    feishu: {
-      enabled: false,
-      appId: "${FEISHU_APP_ID}",
-      appSecret: "${FEISHU_APP_SECRET}",
-      encryptKey: "${FEISHU_ENCRYPT_KEY}",
-      allowedUsers: [],
-    },
+    "feishu": {
+      "enabled": false,
+      "appId": "${FEISHU_APP_ID}",
+      "appSecret": "${FEISHU_APP_SECRET}",
+      "encryptKey": "${FEISHU_ENCRYPT_KEY}",
+      "allowedUsers": []
+    }
   },
-
-  // LLM配置
-  llm: {
-    provider: "openai",
-    model: "gpt-4o-mini",
-    apiKey: "${OPENAI_API_KEY}",
-    baseURL: "",
-    timeout: 60,
-    maxRetries: 3,
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "apiKey": "${OPENAI_API_KEY}",
+    "baseURL": "",
+    "timeout": 60,
+    "maxRetries": 3
   },
-
-  // 智能体配置
-  agents: {
-    default: {
-      name: "Mujibot",
-      systemPrompt: "你是一个运行在低功耗设备上的AI助手。",
-      tools: ["read_file", "write_file", "execute_command", "list_directory"],
-    },
+  "agents": {
+    "default": {
+      "name": "Mujibot",
+      "systemPrompt": "你是一个运行在低功耗设备上的AI助手。",
+      "tools": ["read_file", "write_file", "execute_command", "list_directory"]
+    }
   },
-
-  // 工具配置
-  tools: {
-    workDir: "/opt/mujibot/workspace",
-    timeout: 30,
-    confirmDangerous: true,
-    blockedCommands: ["reboot", "shutdown", "init", "poweroff"],
+  "tools": {
+    "workDir": "/opt/mujibot/workspace",
+    "timeout": 30,
+    "confirmDangerous": true,
+    "blockedCommands": ["reboot", "shutdown", "init", "poweroff"]
   },
-
-  // 会话配置
-  session: {
-    maxMessages: 20,
-    idleTimeout: 3600,
-    maxSessions: 100,
+  "session": {
+    "maxMessages": 20,
+    "idleTimeout": 3600,
+    "maxSessions": 100
   },
-
-  // 日志配置
-  logging: {
-    level: "info",
-    file: "/var/log/mujibot/app.log",
-    maxSize: 5,
-    format: "json",
-  },
+  "logging": {
+    "level": "info",
+    "file": "/var/log/mujibot/app.log",
+    "maxSize": 5,
+    "format": "json"
+  }
 }
 ```
 
