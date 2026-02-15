@@ -63,21 +63,33 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
+          GOARM: ${{ matrix.goarch == 'arm' && '7' || '' }}
         run: |
           VERSION=${{ github.ref_name }}
-          BINARY_NAME=mujibot-${VERSION}-${GOOS}-${GOARCH}
+          VERSION_NUM=${VERSION#v}
+          ARCH_NAME=${{ matrix.goarch }}
+          if [ "$ARCH_NAME" = "arm" ]; then
+            ARCH_NAME="armv7"
+          fi
+          BINARY_NAME=mujibot
           if [ "$GOOS" = "windows" ]; then
             BINARY_NAME="${BINARY_NAME}.exe"
           fi
-          go build -ldflags="-s -w -X main.Version=${VERSION}" -o ${BINARY_NAME} ./cmd/mujibot/
-          tar -czvf ${BINARY_NAME}.tar.gz ${BINARY_NAME}
+          BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+          GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+          go build -ldflags="-s -w -X 'main.version=${VERSION_NUM}' -X 'main.buildTime=${BUILD_TIME}' -X 'main.gitCommit=${GIT_COMMIT}'" -o ${BINARY_NAME} ./cmd/mujibot/
+          mkdir -p mujibot-${VERSION_NUM}-${GOOS}-${ARCH_NAME}
+          mv ${BINARY_NAME} mujibot-${VERSION_NUM}-${GOOS}-${ARCH_NAME}/
+          cp config.json5.example mujibot-${VERSION_NUM}-${GOOS}-${ARCH_NAME}/config.json5 || true
+          cp README.md mujibot-${VERSION_NUM}-${GOOS}-${ARCH_NAME}/ || true
+          tar -czvf mujibot-${VERSION_NUM}-${GOOS}-${ARCH_NAME}.tar.gz mujibot-${VERSION_NUM}-${GOOS}-${ARCH_NAME}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mujibot-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: mujibot-${{ matrix.goos }}-${{ matrix.goarch == 'arm' && 'armv7' || matrix.goarch }}
           path: mujibot-*.tar.gz
-          retention-days: 7
+          retention-days: 30
 
   release:
     name: Release
