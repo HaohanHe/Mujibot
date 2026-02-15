@@ -1,6 +1,6 @@
 # Mujibot 轻量级AI助手引擎
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/HaohanHe/mujibot)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/HaohanHe/mujibot)
 [![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -60,9 +60,9 @@ case $ARCH in
 esac
 
 # 下载
-wget https://github.com/HaohanHe/Mujibot/releases/download/v1.0.0/mujibot-1.0.0-linux-${TARGET}.tar.gz
-tar -xzf mujibot-1.0.0-linux-${TARGET}.tar.gz
-sudo cp mujibot-1.0.0-linux-${TARGET}/mujibot /usr/local/bin/
+wget https://github.com/HaohanHe/Mujibot/releases/download/v1.0.1/mujibot-1.0.1-linux-${TARGET}.tar.gz
+tar -xzf mujibot-1.0.1-linux-${TARGET}.tar.gz
+sudo cp mujibot-1.0.1-linux-${TARGET}/mujibot /usr/local/bin/
 ```
 
 2. **创建配置目录**
