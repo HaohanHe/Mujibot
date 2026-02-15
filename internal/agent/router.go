@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/HaohanHe/mujibot/internal/config"
+	"github.com/HaohanHe/mujibot/internal/i18n"
 	"github.com/HaohanHe/mujibot/internal/llm"
 	"github.com/HaohanHe/mujibot/internal/logger"
 	"github.com/HaohanHe/mujibot/internal/memory"
@@ -26,6 +27,7 @@ type Agent struct {
 	SessionMgr   *session.Manager
 	MemoryMgr    *memory.Manager
 	Config       config.AgentConfig
+	I18n         *i18n.I18n
 	log          *logger.Logger
 }
 
@@ -292,32 +294,46 @@ func (a *Agent) buildSystemPrompt() string {
 	sb.WriteString(a.SystemPrompt)
 
 	sb.WriteString("\n\n## 环境信息\n\n")
-	sb.WriteString(fmt.Sprintf("- 当前时间: %s\n", system.GetCurrentTime()))
-	sb.WriteString(fmt.Sprintf("- 时区: %s\n", system.GetTimezone()))
-	sb.WriteString("- 系统类型: Mujibot AI Assistant\n")
+	sb.WriteString(fmt.Sprintf("- %s: %s\n", a.t("currentTime"), system.GetCurrentTime()))
+	sb.WriteString(fmt.Sprintf("- %s: %s\n", a.t("timezone"), system.GetTimezone()))
+	sb.WriteString(fmt.Sprintf("- %s: Mujibot AI Assistant\n", a.t("systemType")))
 
 	sysInfo := system.GetInfo()
 	sb.WriteString(sysInfo.Format())
 
-	sb.WriteString("\n## 可用工具\n\n")
-	sb.WriteString("你可以使用以下工具来帮助用户:\n")
+	sb.WriteString(fmt.Sprintf("\n## %s\n\n", a.t("availableTools")))
+	sb.WriteString(a.t("toolsIntro") + "\n")
 
 	toolDefs := a.ToolManager.GetToolDefinitions()
 	for _, tool := range toolDefs {
 		sb.WriteString(fmt.Sprintf("- **%s**: %s\n", tool["name"], tool["description"]))
 	}
 
-	sb.WriteString("\n使用工具时，请确保参数正确。如果工具调用失败，向用户解释原因。\n")
+	sb.WriteString("\n" + a.t("toolUsage") + "\n")
 
 	if a.MemoryMgr != nil && a.MemoryMgr.IsEnabled() {
 		memoryContext := a.MemoryMgr.GetMemoryContext()
 		if memoryContext != "" {
-			sb.WriteString("\n## 记忆上下文\n\n")
+			sb.WriteString(fmt.Sprintf("\n## %s\n\n", a.t("memoryContext")))
 			sb.WriteString(memoryContext)
 		}
 	}
 
+	sb.WriteString("\n## " + a.t("userLanguage") + "\n\n")
+	sb.WriteString(a.t("replyInSameLang") + "\n")
+
+	sb.WriteString("\n## " + a.t("memoryRulesTitle") + "\n\n")
+	sb.WriteString(a.t("memoryRules") + "\n")
+	sb.WriteString("\n" + a.t("memoryCategories") + "\n")
+
 	return sb.String()
+}
+
+func (a *Agent) t(key string) string {
+	if a.I18n == nil {
+		a.I18n = i18n.New("en-US")
+	}
+	return a.I18n.T(key)
 }
 
 // executeToolCall 执行工具调用

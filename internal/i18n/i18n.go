@@ -8,30 +8,36 @@ import (
 )
 
 type Messages struct {
-	Hello           string `json:"hello"`
-	SelectLanguage  string `json:"selectLanguage"`
-	CurrentTime     string `json:"currentTime"`
-	SystemType      string `json:"systemType"`
-	AvailableTools  string `json:"availableTools"`
-	MemoryContext   string `json:"memoryContext"`
-	ToolUsage       string `json:"toolUsage"`
-	UserLanguage    string `json:"userLanguage"`
-	ReplyInSameLang string `json:"replyInSameLang"`
-	MemoryRules     string `json:"memoryRules"`
+	Hello            string `json:"hello"`
+	SelectLanguage   string `json:"selectLanguage"`
+	CurrentTime      string `json:"currentTime"`
+	Timezone         string `json:"timezone"`
+	SystemType       string `json:"systemType"`
+	AvailableTools   string `json:"availableTools"`
+	ToolsIntro       string `json:"toolsIntro"`
+	MemoryContext    string `json:"memoryContext"`
+	ToolUsage        string `json:"toolUsage"`
+	UserLanguage     string `json:"userLanguage"`
+	ReplyInSameLang  string `json:"replyInSameLang"`
+	MemoryRulesTitle string `json:"memoryRulesTitle"`
+	MemoryRules      string `json:"memoryRules"`
 	MemoryCategories string `json:"memoryCategories"`
 }
 
 var defaultMessages = map[string]Messages{
 	"en-US": {
-		Hello:           "Hello",
-		SelectLanguage:  "Please select your language",
-		CurrentTime:     "Current time",
-		SystemType:      "System type",
-		AvailableTools:  "Available tools",
-		MemoryContext:   "Memory context",
-		ToolUsage:       "When using tools, ensure parameters are correct. If a tool call fails, explain the reason to the user.",
-		UserLanguage:    "User language",
-		ReplyInSameLang: "Please reply in the same language as the user.",
+		Hello:            "Hello",
+		SelectLanguage:   "Please select your language",
+		CurrentTime:      "Current time",
+		Timezone:         "Timezone",
+		SystemType:       "System type",
+		AvailableTools:   "Available tools",
+		ToolsIntro:       "You can use the following tools to help users:",
+		MemoryContext:    "Memory context",
+		ToolUsage:        "When using tools, ensure parameters are correct. If a tool call fails, explain the reason to the user.",
+		UserLanguage:     "User language",
+		ReplyInSameLang:  "Please reply in the same language as the user.",
+		MemoryRulesTitle: "Memory rules",
 		MemoryRules: `When the user expresses the following intentions, automatically call the memory_write tool:
 1. "Remember..." / "Don't forget..." / "Write this down..."
 2. "I like..." / "I hate..." / "My..."
@@ -44,15 +50,18 @@ var defaultMessages = map[string]Messages{
 - contact: Contact information`,
 	},
 	"zh-CN": {
-		Hello:           "你好",
-		SelectLanguage:  "请选择您的语言",
-		CurrentTime:     "当前时间",
-		SystemType:      "系统类型",
-		AvailableTools:  "可用工具",
-		MemoryContext:   "记忆上下文",
-		ToolUsage:       "使用工具时，请确保参数正确。如果工具调用失败，向用户解释原因。",
-		UserLanguage:    "用户语言",
-		ReplyInSameLang: "请使用与用户相同的语言回复。",
+		Hello:            "你好",
+		SelectLanguage:   "请选择您的语言",
+		CurrentTime:      "当前时间",
+		Timezone:         "时区",
+		SystemType:       "系统类型",
+		AvailableTools:   "可用工具",
+		ToolsIntro:       "你可以使用以下工具来帮助用户:",
+		MemoryContext:    "记忆上下文",
+		ToolUsage:        "使用工具时，请确保参数正确。如果工具调用失败，向用户解释原因。",
+		UserLanguage:     "用户语言",
+		ReplyInSameLang:  "请使用与用户相同的语言回复。",
+		MemoryRulesTitle: "记忆规则",
 		MemoryRules: `当用户表达以下意图时，自动调用 memory_write 工具：
 1. "记住..." / "别忘了..." / "记下来..."
 2. "我喜欢..." / "我讨厌..." / "我的..."
@@ -65,15 +74,18 @@ var defaultMessages = map[string]Messages{
 - contact: 联系人信息`,
 	},
 	"ja-JP": {
-		Hello:           "こんにちは",
-		SelectLanguage:  "言語を選択してください",
-		CurrentTime:     "現在時刻",
-		SystemType:      "システムタイプ",
-		AvailableTools:  "利用可能なツール",
-		MemoryContext:   "メモリコンテキスト",
-		ToolUsage:       "ツールを使用する際は、パラメータが正しいことを確認してください。ツールの呼び出しに失敗した場合は、ユーザーに理由を説明してください。",
-		UserLanguage:    "ユーザー言語",
-		ReplyInSameLang: "ユーザーと同じ言語で返信してください。",
+		Hello:            "こんにちは",
+		SelectLanguage:   "言語を選択してください",
+		CurrentTime:      "現在時刻",
+		Timezone:         "タイムゾーン",
+		SystemType:       "システムタイプ",
+		AvailableTools:   "利用可能なツール",
+		ToolsIntro:       "以下のツールを使用してユーザーを支援できます:",
+		MemoryContext:    "メモリコンテキスト",
+		ToolUsage:        "ツールを使用する際は、パラメータが正しいことを確認してください。ツールの呼び出しに失敗した場合は、ユーザーに理由を説明してください。",
+		UserLanguage:     "ユーザー言語",
+		ReplyInSameLang:  "ユーザーと同じ言語で返信してください。",
+		MemoryRulesTitle: "メモリルール",
 		MemoryRules: `ユーザーが以下の意図を表現した場合、自動的にmemory_writeツールを呼び出します：
 1. 「覚えて...」/「忘れないで...」/「書き留めて...」
 2. 「私は...が好き」/「私は...が嫌い」/「私の...」
@@ -94,11 +106,10 @@ type I18n struct {
 }
 
 func New(defaultLang string) *I18n {
-	i := &I18n{
+	return &I18n{
 		currentLang: defaultLang,
 		messages:    defaultMessages,
 	}
-	return i
 }
 
 func (i *I18n) SetLanguage(lang string) {
@@ -129,10 +140,14 @@ func (i *I18n) T(key string) string {
 		return msgs.SelectLanguage
 	case "currentTime":
 		return msgs.CurrentTime
+	case "timezone":
+		return msgs.Timezone
 	case "systemType":
 		return msgs.SystemType
 	case "availableTools":
 		return msgs.AvailableTools
+	case "toolsIntro":
+		return msgs.ToolsIntro
 	case "memoryContext":
 		return msgs.MemoryContext
 	case "toolUsage":
@@ -141,6 +156,8 @@ func (i *I18n) T(key string) string {
 		return msgs.UserLanguage
 	case "replyInSameLang":
 		return msgs.ReplyInSameLang
+	case "memoryRulesTitle":
+		return msgs.MemoryRulesTitle
 	case "memoryRules":
 		return msgs.MemoryRules
 	case "memoryCategories":
