@@ -28,6 +28,9 @@ go.work
 *.swo
 *~
 
+# Internal docs (not for release)
+COMPARISON.md
+
 # OS
 .DS_Store
 Thumbs.db
