@@ -314,7 +314,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 致谢
 
-- 基于 [OpenClaw](https://github.com/claw-project/claw) 架构理念
+- 基于 [OpenClaw](https://github.com/openclaw/openclaw) 架构理念
 - 使用 Go 标准库实现，保持轻量
 
 ## 联系方式
