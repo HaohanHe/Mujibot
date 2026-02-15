@@ -333,7 +333,6 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ## 📞 联系方式
 
 - GitHub Issues: [github.com/HaohanHe/mujibot/issues](https://github.com/HaohanHe/mujibot/issues)
-- Telegram Group: [@mujibot](https://t.me/mujibot)
 - 邮箱: [bugreport@hsyscn.top](mailto:bugreport@hsyscn.top)
 
 ---
