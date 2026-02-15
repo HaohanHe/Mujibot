@@ -43,10 +43,10 @@
 | 命令执行 | 支持 | execute_command |
 | 文本搜索 | 支持 | grep |
 | 网页搜索 | 支持 | web_search |
-| HTTP 请求 | 支持 | http_request |
+| HTTP请求 | 支持 | http_request |
 | 系统信息 | 支持 | get_system_info |
 | 进程列表 | 支持 | list_processes |
-| 记忆系统 | 支持 | memory |
+| 记忆系统 | 支持 | memory_read/write |
 | 浏览器控制 | 支持 | 不支持 |
 | Canvas | 支持 | 不支持 |
 | Cron 定时 | 支持 | 不支持 |

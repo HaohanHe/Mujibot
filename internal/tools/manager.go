@@ -134,6 +134,7 @@ func (m *Manager) registerBuiltinTools() {
 	m.Register(&GetSystemInfoTool{manager: m})
 	m.Register(&ApplyPatchTool{manager: m})
 	m.Register(&WebSearchTool{manager: m})
+	m.Register(&HTTPRequestTool{manager: m})
 	m.Register(&GrepTool{manager: m})
 	m.Register(&MemoryReadTool{manager: m})
 	m.Register(&MemoryWriteTool{manager: m})
@@ -651,7 +652,6 @@ func (t *WebSearchTool) Execute(args map[string]interface{}) (string, error) {
 		return "No search results found", nil
 	}
 
-	// 格式化结果
 	var output strings.Builder
 	output.WriteString(fmt.Sprintf("Search results for: %s\n\n", query))
 	for i, result := range results {
@@ -661,7 +661,88 @@ func (t *WebSearchTool) Execute(args map[string]interface{}) (string, error) {
 	return output.String(), nil
 }
 
-// GrepTool 文件搜索工具
+type HTTPRequestTool struct {
+	manager *Manager
+}
+
+func (t *HTTPRequestTool) Name() string {
+	return "http_request"
+}
+
+func (t *HTTPRequestTool) Description() string {
+	return "发送HTTP请求获取网页内容。用于获取搜索结果的详细内容。"
+}
+
+func (t *HTTPRequestTool) Parameters() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "object",
+		"properties": map[string]interface{}{
+			"url": map[string]interface{}{
+				"type":        "string",
+				"description": "请求的URL",
+			},
+			"method": map[string]interface{}{
+				"type":        "string",
+				"description": "HTTP方法（GET/POST，默认GET）",
+			},
+		},
+		"required": []string{"url"},
+	}
+}
+
+func (t *HTTPRequestTool) Execute(args map[string]interface{}) (string, error) {
+	url, ok := args["url"].(string)
+	if !ok || url == "" {
+		return "", fmt.Errorf("url is required")
+	}
+
+	method := "GET"
+	if m, ok := args["method"].(string); ok {
+		method = strings.ToUpper(m)
+	}
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	var req *http.Request
+	var err error
+
+	if method == "POST" {
+		req, err = http.NewRequest("POST", url, nil)
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Mujibot/1.0)")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	content := string(body)
+
+	content = stripHTMLTags(content)
+
+	if len(content) > 5000 {
+		content = content[:5000] + "\n... (truncated)"
+	}
+
+	content = strings.TrimSpace(content)
+	if len(content) == 0 {
+		return "Empty response", nil
+	}
+
+	return content, nil
+}
+
 type GrepTool struct {
 	manager *Manager
 }
