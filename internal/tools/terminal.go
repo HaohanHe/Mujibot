@@ -340,6 +340,9 @@ func (t *TerminalTool) Cleanup() {
 		if session.Running && session.Cmd.Process != nil {
 			session.Cmd.Process.Kill()
 		}
+		if session.Stdin != nil {
+			session.Stdin.Close()
+		}
 	}
 	t.sessions = make(map[string]*TerminalSession)
 }

@@ -47,6 +47,7 @@ type Manager struct {
 	mu           sync.RWMutex
 	log          *logger.Logger
 	cleanupTimer *time.Timer
+	stopCh       chan struct{}
 }
 
 // sessionEntry LRU列表中的条目
@@ -64,9 +65,9 @@ func NewManager(maxMessages, idleTimeoutSec, maxSessions int, log *logger.Logger
 		idleTimeout: time.Duration(idleTimeoutSec) * time.Second,
 		maxSessions: maxSessions,
 		log:         log,
+		stopCh:      make(chan struct{}),
 	}
 
-	// 启动清理协程
 	go m.cleanupLoop()
 
 	return m
@@ -236,8 +237,13 @@ func (m *Manager) cleanupLoop() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		m.cleanup()
+	for {
+		select {
+		case <-ticker.C:
+			m.cleanup()
+		case <-m.stopCh:
+			return
+		}
 	}
 }
 
@@ -269,6 +275,8 @@ func (m *Manager) cleanup() {
 
 // Close 关闭会话管理器
 func (m *Manager) Close() {
+	close(m.stopCh)
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

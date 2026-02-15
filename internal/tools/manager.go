@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -190,18 +192,28 @@ func (m *Manager) registerBuiltinTools() {
 	}
 }
 
-// sanitizePath 清理路径，确保在工作目录内
 func (m *Manager) sanitizePath(path string) (string, error) {
-	// 转换为绝对路径
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(m.workDir, path)
 	}
 
-	// 清理路径
 	path = filepath.Clean(path)
 
-	// 检查是否在工作目录内
-	if !strings.HasPrefix(path, m.workDir) {
+	realPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("failed to resolve path: %w", err)
+		}
+		realPath = path
+	}
+
+	realWorkDir, err := filepath.EvalSymlinks(m.workDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve work directory: %w", err)
+	}
+
+	rel, err := filepath.Rel(realWorkDir, realPath)
+	if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
 		return "", fmt.Errorf("path is outside work directory: %s", path)
 	}
 
@@ -227,11 +239,68 @@ func isDangerousCommand(cmd string) bool {
 		"curl | bash",
 	}
 
+	lowerCmd := strings.ToLower(cmd)
 	for _, pattern := range dangerousPatterns {
-		if strings.Contains(cmd, pattern) {
+		if strings.Contains(lowerCmd, strings.ToLower(pattern)) {
 			return true
 		}
 	}
+	return false
+}
+
+func hasCommandInjection(cmd string) bool {
+	injectionPatterns := []string{
+		"$(", "${", "`", ";", "&&", "||", "|",
+		"\n", "\r", ">>", "<<",
+	}
+
+	quoted := false
+	for i, c := range cmd {
+		if c == '\'' || c == '"' {
+			quoted = !quoted
+		}
+		if !quoted {
+			for _, pattern := range injectionPatterns {
+				if strings.HasPrefix(cmd[i:], pattern) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func isPrivateIP(host string) bool {
+	if host == "" {
+		return false
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+
+	privateRanges := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"127.0.0.0/8",
+		"169.254.0.0/16",
+		"::1/128",
+		"fc00::/7",
+		"fe80::/10",
+	}
+
+	for _, cidr := range privateRanges {
+		_, network, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		if network.Contains(ip) {
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -437,9 +506,14 @@ func (t *ExecuteCommandTool) Execute(args map[string]interface{}) (string, error
 		return "", fmt.Errorf("command is required")
 	}
 
+	if hasCommandInjection(command) {
+		return "", fmt.Errorf("potential command injection detected")
+	}
+
 	blockedCommand := ""
+	lowerCmd := strings.ToLower(command)
 	for _, blocked := range t.manager.blockedCommands {
-		if strings.Contains(command, blocked) {
+		if strings.Contains(lowerCmd, strings.ToLower(blocked)) {
 			blockedCommand = blocked
 			break
 		}
@@ -749,9 +823,27 @@ func (t *HTTPRequestTool) Parameters() map[string]interface{} {
 }
 
 func (t *HTTPRequestTool) Execute(args map[string]interface{}) (string, error) {
-	url, ok := args["url"].(string)
-	if !ok || url == "" {
+	urlStr, ok := args["url"].(string)
+	if !ok || urlStr == "" {
 		return "", fmt.Errorf("url is required")
+	}
+
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return "", fmt.Errorf("invalid url: %w", err)
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return "", fmt.Errorf("only http/https protocols are allowed")
+	}
+
+	host := parsedURL.Hostname()
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return "", fmt.Errorf("access to localhost is not allowed")
+	}
+
+	if isPrivateIP(host) {
+		return "", fmt.Errorf("access to private IP addresses is not allowed")
 	}
 
 	method := "GET"
@@ -761,12 +853,11 @@ func (t *HTTPRequestTool) Execute(args map[string]interface{}) (string, error) {
 
 	client := &http.Client{Timeout: 15 * time.Second}
 	var req *http.Request
-	var err error
 
 	if method == "POST" {
-		req, err = http.NewRequest("POST", url, nil)
+		req, err = http.NewRequest("POST", urlStr, nil)
 	} else {
-		req, err = http.NewRequest("GET", url, nil)
+		req, err = http.NewRequest("GET", urlStr, nil)
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)

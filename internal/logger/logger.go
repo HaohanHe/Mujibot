@@ -71,6 +71,7 @@ type Logger struct {
 	mu         sync.Mutex
 	buffer     []LogEntry
 	bufferSize int
+	stopCh     chan struct{}
 }
 
 // Config 日志配置
@@ -90,9 +91,9 @@ func New(cfg Config) (*Logger, error) {
 		format:     cfg.Format,
 		buffer:     make([]LogEntry, 0, 100),
 		bufferSize: 100,
+		stopCh:     make(chan struct{}),
 	}
 
-	// 设置输出
 	if cfg.File != "" {
 		if err := l.openFile(); err != nil {
 			return nil, err
@@ -101,7 +102,6 @@ func New(cfg Config) (*Logger, error) {
 		l.output = os.Stdout
 	}
 
-	// 启动定期刷新
 	go l.flushLoop()
 
 	return l, nil
@@ -207,12 +207,17 @@ func (l *Logger) flushLoop() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		l.mu.Lock()
-		if len(l.buffer) > 0 {
-			l.flush()
+	for {
+		select {
+		case <-ticker.C:
+			l.mu.Lock()
+			if len(l.buffer) > 0 {
+				l.flush()
+			}
+			l.mu.Unlock()
+		case <-l.stopCh:
+			return
 		}
-		l.mu.Unlock()
 	}
 }
 
@@ -289,6 +294,8 @@ func (l *Logger) rotate() {
 
 // Close 关闭日志记录器
 func (l *Logger) Close() error {
+	close(l.stopCh)
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 

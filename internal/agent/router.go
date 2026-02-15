@@ -143,16 +143,29 @@ func (a *Agent) ProcessMessage(userID, channel, content string) (string, error) 
 
 	// 获取工具定义
 	toolDefs := a.ToolManager.GetToolDefinitions()
-	tools := make([]llm.Tool, len(toolDefs))
-	for i, def := range toolDefs {
-		tools[i] = llm.Tool{
+	tools := make([]llm.Tool, 0, len(toolDefs))
+	for _, def := range toolDefs {
+		fn, ok := def["function"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name, _ := fn["name"].(string)
+		desc, _ := fn["description"].(string)
+		params, _ := fn["parameters"].(map[string]interface{})
+
+		if name == "" {
+			continue
+		}
+
+		tools = append(tools, llm.Tool{
 			Type: "function",
 			Function: llm.Function{
-				Name:        def["function"].(map[string]interface{})["name"].(string),
-				Description: def["function"].(map[string]interface{})["description"].(string),
-				Parameters:  def["function"].(map[string]interface{})["parameters"].(map[string]interface{}),
+				Name:        name,
+				Description: desc,
+				Parameters:  params,
 			},
-		}
+		})
 	}
 
 	// 调用LLM
