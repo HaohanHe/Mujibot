@@ -287,74 +287,158 @@ func (m *Manager) createDefaultConfig() error {
     "openai": {
       "name": "OpenAI",
       "baseURL": "https://api.openai.com/v1",
-      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1-preview", "o1-mini"],
       "description": "OpenAI GPT models"
     },
     "anthropic": {
       "name": "Anthropic Claude",
       "baseURL": "https://api.anthropic.com/v1",
-      "models": ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
+      "models": ["claude-sonnet-4-20250514", "claude-3-5-sonnet-20241022", "claude-3-haiku-20240307", "claude-3-opus-20240229"],
       "description": "Anthropic Claude models"
+    },
+    "openai-native": {
+      "name": "OpenAI Native",
+      "baseURL": "https://api.openai.com/v1",
+      "models": ["gpt-4o", "gpt-4o-mini", "o1", "o1-mini", "o3-mini"],
+      "description": "OpenAI native API"
+    },
+    "gemini": {
+      "name": "Google Gemini",
+      "baseURL": "https://generativelanguage.googleapis.com/v1beta",
+      "models": ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+      "description": "Google Gemini models"
     },
     "deepseek": {
       "name": "DeepSeek",
       "baseURL": "https://api.deepseek.com",
-      "models": ["deepseek-chat", "deepseek-reasoner"],
-      "description": "DeepSeek models - high quality, low cost"
+      "models": ["deepseek-chat", "deepseek-reasoner", "deepseek-coder"],
+      "description": "DeepSeek - high quality, low cost"
     },
     "minimax": {
       "name": "MiniMax",
       "baseURL": "https://api.minimax.chat/v1",
-      "models": ["abab6.5s-chat", "abab6.5g-chat"],
+      "models": ["MiniMax-Text-01", "abab6.5s-chat", "abab6.5g-chat"],
       "description": "MiniMax AI models"
-    },
-    "mimo": {
-      "name": "Xiaomi MiMo",
-      "baseURL": "https://api.mimo.ai/v1",
-      "models": ["MiMo-V2-Flash"],
-      "description": "Xiaomi MiMo models - agent friendly"
     },
     "moonshot": {
       "name": "Moonshot Kimi",
       "baseURL": "https://api.moonshot.cn/v1",
-      "models": ["moonshot-v1-8k", "moonshot-v1-32k", "kimi-k2-0711-preview"],
+      "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k", "kimi-k2-0711-preview"],
       "description": "Moonshot Kimi - long context"
     },
     "zhipu": {
       "name": "Zhipu GLM",
       "baseURL": "https://open.bigmodel.cn/api/paas/v4",
-      "models": ["glm-4", "glm-4-flash", "glm-4-plus"],
+      "models": ["glm-4", "glm-4-flash", "glm-4-plus", "glm-4-long", "glm-z1-air", "glm-z1-airx"],
       "description": "Zhipu AI GLM models"
     },
     "qwen": {
       "name": "Alibaba Qwen",
       "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-      "models": ["qwen-turbo", "qwen-plus", "qwen-max"],
+      "models": ["qwen-turbo", "qwen-plus", "qwen-max", "qwen-long", "qwen-coder-plus", "qwen-2.5-72b-instruct"],
       "description": "Alibaba Tongyi Qwen models"
+    },
+    "qwen-code": {
+      "name": "Qwen Code",
+      "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "models": ["qwen-coder-plus", "qwen-coder-turbo"],
+      "description": "Qwen Code - coding specialist"
     },
     "doubao": {
       "name": "ByteDance Doubao",
       "baseURL": "https://ark.cn-beijing.volces.com/api/v3",
-      "models": ["doubao-pro-32k", "doubao-pro-128k"],
+      "models": ["doubao-pro-32k", "doubao-pro-128k", "doubao-lite-4k"],
       "description": "ByteDance Doubao models"
     },
     "groq": {
       "name": "Groq",
       "baseURL": "https://api.groq.com/openai/v1",
-      "models": ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+      "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
       "description": "Groq - ultra fast inference"
+    },
+    "xai": {
+      "name": "xAI Grok",
+      "baseURL": "https://api.x.ai/v1",
+      "models": ["grok-beta", "grok-2-1212", "grok-2-vision-1212"],
+      "description": "xAI Grok models"
+    },
+    "mistral": {
+      "name": "Mistral AI",
+      "baseURL": "https://api.mistral.ai/v1",
+      "models": ["mistral-large-latest", "mistral-medium", "codestral-latest", "ministral-8b-latest"],
+      "description": "Mistral AI models"
+    },
+    "cerebras": {
+      "name": "Cerebras",
+      "baseURL": "https://api.cerebras.ai/v1",
+      "models": ["llama-3.3-70b", "llama-3.1-8b"],
+      "description": "Cerebras - fast inference"
+    },
+    "fireworks": {
+      "name": "Fireworks AI",
+      "baseURL": "https://api.fireworks.ai/inference/v1",
+      "models": ["accounts/fireworks/models/llama-v3-70b-instruct", "accounts/fireworks/models/qwen2p5-72b-instruct"],
+      "description": "Fireworks AI models"
+    },
+    "sambanova": {
+      "name": "SambaNova",
+      "baseURL": "https://api.sambanova.ai/v1",
+      "models": ["Meta-Llama-3.1-8B-Instruct", "Meta-Llama-3.1-70B-Instruct"],
+      "description": "SambaNova models"
     },
     "siliconflow": {
       "name": "SiliconFlow",
       "baseURL": "https://api.siliconflow.cn/v1",
-      "models": ["Qwen/Qwen2.5-7B-Instruct", "deepseek-ai/DeepSeek-V2.5"],
+      "models": ["Qwen/Qwen2.5-7B-Instruct", "deepseek-ai/DeepSeek-V2.5", "meta-llama/Llama-3.3-70B-Instruct"],
       "description": "SiliconFlow - multi-model proxy"
+    },
+    "openrouter": {
+      "name": "OpenRouter",
+      "baseURL": "https://openrouter.ai/api/v1",
+      "models": ["anthropic/claude-sonnet-4", "openai/gpt-4o", "deepseek/deepseek-chat"],
+      "description": "OpenRouter - 500+ models"
+    },
+    "deepinfra": {
+      "name": "DeepInfra",
+      "baseURL": "https://api.deepinfra.com/v1/openai",
+      "models": ["meta-llama/Llama-3.3-70B-Instruct", "deepseek-ai/DeepSeek-R1"],
+      "description": "DeepInfra models"
+    },
+    "zai": {
+      "name": "Z.ai",
+      "baseURL": "https://api.z.ai/v1",
+      "models": ["zai-1", "zai-2"],
+      "description": "Z.ai models"
+    },
+    "chutes": {
+      "name": "Chutes",
+      "baseURL": "https://llm.chutes.ai/v1",
+      "models": ["chutes-ai/Llama-3.3-70B-Instruct"],
+      "description": "Chutes AI"
+    },
+    "featherless": {
+      "name": "Featherless",
+      "baseURL": "https://api.featherless.ai/v1",
+      "models": ["featherless-ai/Qwen2.5-72B-Instruct"],
+      "description": "Featherless AI"
     },
     "ollama": {
       "name": "Ollama Local",
       "baseURL": "http://localhost:11434/v1",
-      "models": ["llama3.2", "llama3.1", "qwen2.5", "deepseek-v2"],
+      "models": ["llama3.2", "llama3.1", "qwen2.5", "deepseek-r1", "codellama", "mistral"],
       "description": "Ollama local models"
+    },
+    "lmstudio": {
+      "name": "LM Studio Local",
+      "baseURL": "http://localhost:1234/v1",
+      "models": ["local-model"],
+      "description": "LM Studio local models"
+    },
+    "litellm": {
+      "name": "LiteLLM Proxy",
+      "baseURL": "http://localhost:4000/v1",
+      "models": ["gpt-4", "claude-3-sonnet"],
+      "description": "LiteLLM proxy server"
     }
   },
   "language": {

@@ -130,15 +130,20 @@ func runSetupWizard(configPath string) error {
 
 func printWelcome() {
 	fmt.Println()
-	fmt.Println(strings.Repeat("=", 40))
+	fmt.Println(strings.Repeat("=", 50))
 	fmt.Println()
-	fmt.Println("    Hello / 你好 / こんにちは")
+	fmt.Println("    Hello / 你好 / こんにちは / Hallo")
+	fmt.Println("    Bonjour / Hola / Ciao / Olá")
+	fmt.Println("    Привет / こんにちは / Merhaba / Hej")
+	fmt.Println("    Salut / Namaste / Shalom / Aloha")
 	fmt.Println()
 	fmt.Println("    Welcome to Mujibot!")
 	fmt.Println("    欢迎使用 Mujibot!")
 	fmt.Println("    Mujibotへようこそ!")
+	fmt.Println("    Willkommen bei Mujibot!")
+	fmt.Println("    Bienvenue sur Mujibot!")
 	fmt.Println()
-	fmt.Println(strings.Repeat("=", 40))
+	fmt.Println(strings.Repeat("=", 50))
 }
 
 func createInitialConfig(configPath, language string) error {
