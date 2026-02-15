@@ -1,0 +1,61 @@
+[Unit]
+Description=Mujibot Lightweight AI Assistant
+Documentation=https://github.com/mujibot/mujibot
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=mujibot
+Group=mujibot
+
+# 工作目录
+WorkingDirectory=/opt/mujibot
+
+# 可执行文件路径
+ExecStart=/usr/local/bin/mujibot --config /opt/mujibot/config.json5
+
+# 重启策略
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 优雅停止
+TimeoutStopSec=30
+KillSignal=SIGTERM
+
+# 资源限制（针对低配置设备优化）
+# 内存限制：最大100MB
+MemoryMax=100M
+# 内存交换限制
+MemorySwapMax=0
+# CPU配额（可选）
+# CPUQuota=50%
+
+# 文件描述符限制
+LimitNOFILE=1024
+
+# 进程限制
+LimitNPROC=50
+
+# 日志输出
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mujibot
+
+# 安全设置
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mujibot /var/log/mujibot
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# 环境变量
+Environment="GOGC=100"
+Environment="GOMEMLIMIT=80MiB"
+
+[Install]
+WantedBy=multi-user.target
