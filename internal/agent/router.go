@@ -349,7 +349,7 @@ func (a *Agent) executeToolCall(tc session.ToolCall) (string, error) {
 }
 
 // CreateAgent 创建智能体实例
-func CreateAgent(id string, cfg config.AgentConfig, provider llm.Provider, toolMgr *tools.Manager, sessionMgr *session.Manager, memoryMgr *memory.Manager, log *logger.Logger) *Agent {
+func CreateAgent(id string, cfg config.AgentConfig, provider llm.Provider, toolMgr *tools.Manager, sessionMgr *session.Manager, memoryMgr *memory.Manager, i *i18n.I18n, log *logger.Logger) *Agent {
 	return &Agent{
 		ID:           id,
 		Name:         cfg.Name,
@@ -359,6 +359,7 @@ func CreateAgent(id string, cfg config.AgentConfig, provider llm.Provider, toolM
 		SessionMgr:   sessionMgr,
 		MemoryMgr:    memoryMgr,
 		Config:       cfg,
+		I18n:         i,
 		log:          log,
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/HaohanHe/mujibot/internal/channel/telegram"
 	"github.com/HaohanHe/mujibot/internal/config"
 	"github.com/HaohanHe/mujibot/internal/health"
+	"github.com/HaohanHe/mujibot/internal/i18n"
 	"github.com/HaohanHe/mujibot/internal/llm"
 	"github.com/HaohanHe/mujibot/internal/logger"
 	"github.com/HaohanHe/mujibot/internal/memory"
@@ -155,9 +156,12 @@ func (g *Gateway) initComponents() error {
 	// 创建智能体路由器
 	g.agentRouter = agent.NewRouter(g.log)
 
+	// 创建国际化实例
+	i := i18n.New(cfg.Language.Current)
+
 	// 注册智能体
 	for agentID, agentCfg := range cfg.Agents {
-		a := agent.CreateAgent(agentID, agentCfg, llmProvider, g.toolMgr, g.sessionMgr, g.memoryMgr, g.log)
+		a := agent.CreateAgent(agentID, agentCfg, llmProvider, g.toolMgr, g.sessionMgr, g.memoryMgr, i, g.log)
 		g.agentRouter.RegisterAgent(agentID, a)
 	}
 
