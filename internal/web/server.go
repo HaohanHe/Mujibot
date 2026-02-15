@@ -287,6 +287,7 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Message string `json:"message"`
 		AgentID string `json:"agent_id"`
+		Stream  bool   `json:"stream"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -294,26 +295,53 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 获取智能体
 	agent, err := s.agentRouter.Route("web_user", "web", req.AgentID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// 处理消息
-	response, err := s.agentRouter.ProcessMessage(agent, "web_user", "web", req.Message)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// 记录调试消息
 	s.LogMessage("user", "web", req.Message, "web_user", "web")
-	s.LogMessage("assistant", "web", response, "web_user", "web")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"response": response})
+	if req.Stream {
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "Streaming not supported", http.StatusInternalServerError)
+			return
+		}
+
+		var fullResponse string
+		response, err := s.agentRouter.ProcessMessageStream(agent, "web_user", "web", req.Message, func(chunk string) {
+			fullResponse += chunk
+			fmt.Fprintf(w, "data: %s\n\n", chunk)
+			flusher.Flush()
+		})
+
+		if err != nil {
+			fmt.Fprintf(w, "data: [ERROR: %s]\n\n", err.Error())
+			flusher.Flush()
+			return
+		}
+
+		s.LogMessage("assistant", "web", response, "web_user", "web")
+		fmt.Fprintf(w, "data: [DONE]\n\n")
+		flusher.Flush()
+	} else {
+		response, err := s.agentRouter.ProcessMessage(agent, "web_user", "web", req.Message)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		s.LogMessage("assistant", "web", response, "web_user", "web")
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"response": response})
+	}
 }
 
 // handleMessageStream 处理消息流（SSE）

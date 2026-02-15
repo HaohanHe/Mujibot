@@ -207,30 +207,38 @@ func (a *Agent) ProcessMessage(userID, channel, content string) (string, error) 
 
 // ProcessMessageStream 流式处理消息
 func (a *Agent) ProcessMessageStream(userID, channel, content string, callback func(chunk string)) (string, error) {
-	// 获取或创建会话
 	sess := a.SessionMgr.GetOrCreate(userID, channel, a.ID)
 
-	// 添加用户消息
 	a.SessionMgr.AddMessage(sess, "user", content)
 
-	// 构建消息历史
 	messages := a.buildMessages(sess)
 
-	// 获取工具定义
 	toolDefs := a.ToolManager.GetToolDefinitions()
-	tools := make([]llm.Tool, len(toolDefs))
-	for i, def := range toolDefs {
-		tools[i] = llm.Tool{
+	tools := make([]llm.Tool, 0, len(toolDefs))
+	for _, def := range toolDefs {
+		fn, ok := def["function"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		name, _ := fn["name"].(string)
+		desc, _ := fn["description"].(string)
+		params, _ := fn["parameters"].(map[string]interface{})
+
+		if name == "" {
+			continue
+		}
+
+		tools = append(tools, llm.Tool{
 			Type: "function",
 			Function: llm.Function{
-				Name:        def["function"].(map[string]interface{})["name"].(string),
-				Description: def["function"].(map[string]interface{})["description"].(string),
-				Parameters:  def["function"].(map[string]interface{})["parameters"].(map[string]interface{}),
+				Name:        name,
+				Description: desc,
+				Parameters:  params,
 			},
-		}
+		})
 	}
 
-	// 调用LLM（流式）
 	var fullContent string
 	resp, err := a.Provider.ChatStream(messages, tools, func(chunk string) {
 		fullContent += chunk
@@ -242,9 +250,7 @@ func (a *Agent) ProcessMessageStream(userID, channel, content string, callback f
 		return "", fmt.Errorf("llm error: %w", err)
 	}
 
-	// 处理工具调用
 	if len(resp.ToolCalls) > 0 {
-		// 添加助手消息（带工具调用）
 		a.SessionMgr.AddToolCallMessage(sess, "assistant", fullContent, resp.ToolCalls)
 
 		// 执行工具
