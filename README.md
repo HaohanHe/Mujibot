@@ -4,7 +4,7 @@
 [![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Mujibot是一个资源高效的个人AI助手系统，专为低配置ARM设备（如玩客云，仅1GB RAM和8GB eMMC存储）设计。该系统基于OpenClaw架构理念，使用Go语言重新实现，提供单二进制部署、极低资源占用（<10MB RAM空闲）和快速启动的特性。
+Mujibot是一个资源高效的个人AI助手系统，专为低配置ARM设备（如玩客云，仅1GB RAM和8GB eMMC存储）设计。该系统启发于OpenClaw理念，使用Go语言实现，提供单二进制部署、极低资源占用（<10MB RAM空闲）和快速启动的特性。
 
 ## 特性
 
@@ -43,7 +43,7 @@ Mujibot是一个资源高效的个人AI助手系统，专为低配置ARM设备�
 
 ```bash
 # 使用安装脚本（需要root权限）
-curl -fsSL https://raw.githubusercontent.com/HaohanHe/mujibot/main/scripts/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/HaohanHe/Mujibot/main/scripts/install.sh | sudo bash
 ```
 
 ### 手动安装
@@ -60,7 +60,7 @@ case $ARCH in
 esac
 
 # 下载
-wget https://github.com/HaohanHe/mujibot/releases/download/v1.0.0/mujibot-1.0.0-linux-${TARGET}.tar.gz
+wget https://github.com/HaohanHe/Mujibot/releases/download/v1.0.0/mujibot-1.0.0-linux-${TARGET}.tar.gz
 tar -xzf mujibot-1.0.0-linux-${TARGET}.tar.gz
 sudo cp mujibot-1.0.0-linux-${TARGET}/mujibot /usr/local/bin/
 ```
@@ -180,7 +180,7 @@ sudo systemctl enable --now mujibot
 
 ```bash
 # 克隆仓库
-git clone https://github.com/HaohanHe/mujibot.git
+git clone https://github.com/HaohanHe/Mujibot.git
 cd mujibot
 
 # 安装依赖
@@ -314,10 +314,10 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 致谢
 
-- 基于 [OpenClaw](https://github.com/openclaw/openclaw) 架构理念
+- 基于 [OpenClaw](https://github.com/openclaw/openclaw) 理念
 - 使用 Go 标准库实现，保持轻量
 
 ## 联系方式
 
-- GitHub Issues: [github.com/HaohanHe/mujibot/issues](https://github.com/HaohanHe/mujibot/issues)
+- GitHub Issues: [github.com/HaohanHe/mujibot/issues](https://github.com/HaohanHe/Mujibot/issues)
 - 邮箱: [bugreport@hsyscn.top](mailto:bugreport@hsyscn.top)
