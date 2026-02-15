@@ -6,13 +6,13 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/HaohanHe/mujibot/internal/config"
 	"github.com/HaohanHe/mujibot/internal/llm"
 	"github.com/HaohanHe/mujibot/internal/logger"
 	"github.com/HaohanHe/mujibot/internal/memory"
 	"github.com/HaohanHe/mujibot/internal/session"
+	"github.com/HaohanHe/mujibot/internal/system"
 	"github.com/HaohanHe/mujibot/internal/tools"
 )
 
@@ -289,16 +289,16 @@ func (a *Agent) buildMessages(sess *session.Session) []session.Message {
 func (a *Agent) buildSystemPrompt() string {
 	var sb strings.Builder
 
-	// 基础系统提示
 	sb.WriteString(a.SystemPrompt)
 
-	// 添加环境信息
 	sb.WriteString("\n\n## 环境信息\n\n")
-	sb.WriteString(fmt.Sprintf("- 当前时间: %s\n", time.Now().Format("2006-01-02 15:04:05")))
-	sb.WriteString(fmt.Sprintf("- 系统类型: Mujibot AI Assistant\n"))
-	sb.WriteString(fmt.Sprintf("- 运行环境: 低功耗ARM设备\n"))
+	sb.WriteString(fmt.Sprintf("- 当前时间: %s\n", system.GetCurrentTime()))
+	sb.WriteString(fmt.Sprintf("- 时区: %s\n", system.GetTimezone()))
+	sb.WriteString("- 系统类型: Mujibot AI Assistant\n")
 
-	// 添加可用工具列表
+	sysInfo := system.GetInfo()
+	sb.WriteString(sysInfo.Format())
+
 	sb.WriteString("\n## 可用工具\n\n")
 	sb.WriteString("你可以使用以下工具来帮助用户:\n")
 
@@ -309,7 +309,6 @@ func (a *Agent) buildSystemPrompt() string {
 
 	sb.WriteString("\n使用工具时，请确保参数正确。如果工具调用失败，向用户解释原因。\n")
 
-	// 添加记忆上下文（如果启用）
 	if a.MemoryMgr != nil && a.MemoryMgr.IsEnabled() {
 		memoryContext := a.MemoryMgr.GetMemoryContext()
 		if memoryContext != "" {

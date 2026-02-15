@@ -15,14 +15,16 @@ import (
 
 // Config 主配置结构
 type Config struct {
-	Server   ServerConfig            `json:"server"`
-	Channels ChannelsConfig          `json:"channels"`
-	LLM      LLMConfig               `json:"llm"`
-	Agents   map[string]AgentConfig  `json:"agents"`
-	Tools    ToolsConfig             `json:"tools"`
-	Session  SessionConfig           `json:"session"`
-	Logging  LoggingConfig           `json:"logging"`
-	Memory   MemoryConfig            `json:"memory"`
+	Server     ServerConfig            `json:"server"`
+	Channels   ChannelsConfig          `json:"channels"`
+	LLM        LLMConfig               `json:"llm"`
+	LLMPresets map[string]LLMPreset    `json:"llmPresets"`
+	Language   LanguageConfig          `json:"language"`
+	Agents     map[string]AgentConfig  `json:"agents"`
+	Tools      ToolsConfig             `json:"tools"`
+	Session    SessionConfig           `json:"session"`
+	Logging    LoggingConfig           `json:"logging"`
+	Memory     MemoryConfig            `json:"memory"`
 }
 
 // ServerConfig 服务器配置
@@ -69,6 +71,21 @@ type LLMConfig struct {
 	BaseURL    string `json:"baseURL"`
 	Timeout    int    `json:"timeout"`
 	MaxRetries int    `json:"maxRetries"`
+}
+
+// LLMPreset LLM预设配置
+type LLMPreset struct {
+	Name        string   `json:"name"`
+	BaseURL     string   `json:"baseURL"`
+	Models      []string `json:"models"`
+	Description string   `json:"description"`
+}
+
+// LanguageConfig 语言配置
+type LanguageConfig struct {
+	Default  string   `json:"default"`
+	Current  string   `json:"current"`
+	Supported []string `json:"supported"`
 }
 
 // AgentConfig 智能体配置
@@ -249,10 +266,89 @@ func (m *Manager) createDefaultConfig() error {
     "timeout": 60,
     "maxRetries": 3
   },
+  "llmPresets": {
+    "openai": {
+      "name": "OpenAI",
+      "baseURL": "https://api.openai.com/v1",
+      "models": ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
+      "description": "OpenAI GPT models"
+    },
+    "anthropic": {
+      "name": "Anthropic Claude",
+      "baseURL": "https://api.anthropic.com/v1",
+      "models": ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"],
+      "description": "Anthropic Claude models"
+    },
+    "deepseek": {
+      "name": "DeepSeek",
+      "baseURL": "https://api.deepseek.com",
+      "models": ["deepseek-chat", "deepseek-reasoner"],
+      "description": "DeepSeek models - high quality, low cost"
+    },
+    "minimax": {
+      "name": "MiniMax",
+      "baseURL": "https://api.minimax.chat/v1",
+      "models": ["abab6.5s-chat", "abab6.5g-chat"],
+      "description": "MiniMax AI models"
+    },
+    "mimo": {
+      "name": "Xiaomi MiMo",
+      "baseURL": "https://api.mimo.ai/v1",
+      "models": ["MiMo-V2-Flash"],
+      "description": "Xiaomi MiMo models - agent friendly"
+    },
+    "moonshot": {
+      "name": "Moonshot Kimi",
+      "baseURL": "https://api.moonshot.cn/v1",
+      "models": ["moonshot-v1-8k", "moonshot-v1-32k", "kimi-k2-0711-preview"],
+      "description": "Moonshot Kimi - long context"
+    },
+    "zhipu": {
+      "name": "Zhipu GLM",
+      "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+      "models": ["glm-4", "glm-4-flash", "glm-4-plus"],
+      "description": "Zhipu AI GLM models"
+    },
+    "qwen": {
+      "name": "Alibaba Qwen",
+      "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "models": ["qwen-turbo", "qwen-plus", "qwen-max"],
+      "description": "Alibaba Tongyi Qwen models"
+    },
+    "doubao": {
+      "name": "ByteDance Doubao",
+      "baseURL": "https://ark.cn-beijing.volces.com/api/v3",
+      "models": ["doubao-pro-32k", "doubao-pro-128k"],
+      "description": "ByteDance Doubao models"
+    },
+    "groq": {
+      "name": "Groq",
+      "baseURL": "https://api.groq.com/openai/v1",
+      "models": ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+      "description": "Groq - ultra fast inference"
+    },
+    "siliconflow": {
+      "name": "SiliconFlow",
+      "baseURL": "https://api.siliconflow.cn/v1",
+      "models": ["Qwen/Qwen2.5-7B-Instruct", "deepseek-ai/DeepSeek-V2.5"],
+      "description": "SiliconFlow - multi-model proxy"
+    },
+    "ollama": {
+      "name": "Ollama Local",
+      "baseURL": "http://localhost:11434/v1",
+      "models": ["llama3.2", "llama3.1", "qwen2.5", "deepseek-v2"],
+      "description": "Ollama local models"
+    }
+  },
+  "language": {
+    "default": "en-US",
+    "current": "en-US",
+    "supported": ["en-US", "zh-CN", "ja-JP"]
+  },
   "agents": {
     "default": {
       "name": "Mujibot",
-      "systemPrompt": "你是一个运行在低功耗ARM设备上的AI助手。你高效、简洁、 helpful。",
+      "systemPrompt": "You are an AI assistant running on a low-power device. You are efficient, concise, and helpful.",
       "tools": ["read_file", "write_file", "execute_command", "list_directory"]
     }
   },
@@ -275,20 +371,7 @@ func (m *Manager) createDefaultConfig() error {
       "memory_read": true,
       "memory_write": true
     },
-    "customAPIs": [
-      {
-        "name": "example_api",
-        "description": "示例自定义API",
-        "url": "https://api.example.com/data?q={query}",
-        "method": "GET",
-        "headers": {
-          "Authorization": "Bearer {apiKey}"
-        },
-        "apiKey": "${EXAMPLE_API_KEY}",
-        "timeout": 10,
-        "enabled": false
-      }
-    ]
+    "customAPIs": []
   },
   "session": {
     "maxMessages": 20,
