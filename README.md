@@ -98,6 +98,24 @@ export OPENAI_API_KEY="your_openai_api_key"
 sudo systemctl enable --now mujibot
 ```
 
+### 卸载
+
+```bash
+# 使用卸载脚本
+curl -fsSL https://raw.githubusercontent.com/HaohanHe/Mujibot/main/scripts/uninstall.sh | sudo bash
+```
+
+或者手动卸载：
+
+```bash
+sudo systemctl stop mujibot
+sudo systemctl disable mujibot
+sudo rm -f /usr/local/bin/mujibot
+sudo rm -rf /opt/mujibot
+sudo rm -rf /var/log/mujibot
+sudo userdel mujibot 2>/dev/null || true
+```
+
 ## 配置
 
 ### 配置文件示例
