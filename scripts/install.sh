@@ -232,6 +232,9 @@ start_service() {
 
 # 打印完成信息
 print_finish() {
+    local ip_address=$(hostname -I | awk '{print $1}')
+    local hostname=$(hostname)
+    
     echo ""
     echo "╔══════════════════════════════════════════════════════════════╗"
     echo "║                   Mujibot Installation Complete              ║"
@@ -240,15 +243,25 @@ print_finish() {
     echo "  📁 Installation directory: $INSTALL_DIR"
     echo "  ⚙️  Configuration file: $CONFIG_FILE"
     echo "  📜 Log directory: $LOG_DIR"
-    echo "  🌐 Web console: http://$(hostname -I | awk '{print $1}'):8080"
     echo ""
-    echo "  Commands:"
+    echo "  🌐 Web Console Access:"
+    echo "     • Local:   http://localhost:8080"
+    echo "     • LAN:     http://$ip_address:8080"
+    echo "     • Host:    http://$hostname:8080"
+    echo ""
+    echo "  🔧 Debug Commands:"
     echo "    sudo systemctl start|stop|restart|status $APP_NAME"
     echo "    sudo journalctl -u $APP_NAME -f"
+    echo "    $APP_NAME --version"
     echo ""
-    echo "  Next steps:"
-    echo "    1. Edit $CONFIG_FILE to configure your API keys"
-    echo "    2. Restart the service: sudo systemctl restart $APP_NAME"
+    echo "  📝 Next Steps:"
+    echo "    1. Open http://$ip_address:8080 in your browser"
+    echo "    2. Or edit $CONFIG_FILE to configure your API keys"
+    echo "    3. Restart: sudo systemctl restart $APP_NAME"
+    echo ""
+    echo "  💡 Tips:"
+    echo "    • Check status: sudo systemctl status $APP_NAME"
+    echo "    • View logs:    sudo journalctl -u $APP_NAME -n 50"
     echo ""
 }
 
