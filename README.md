@@ -98,6 +98,12 @@ export OPENAI_API_KEY="your_openai_api_key"
 sudo systemctl enable --now mujibot
 ```
 
+7. **访问 Web 控制台**
+
+安装完成后，打开浏览器访问：
+- 本地访问：http://localhost:8080
+- 局域网访问：http://$(hostname -I | awk '{print $1}'):8080
+
 ### 卸载
 
 ```bash
