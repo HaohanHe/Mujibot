@@ -5,257 +5,263 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"sync"
+	"sort"
 	"time"
+
+	"github.com/HaohanHe/mujibot/internal/logger"
 )
 
-type MemoryCategory string
-
-const (
-	CategoryPreference MemoryCategory = "preference"
-	CategoryFact       MemoryCategory = "fact"
-	CategoryEvent      MemoryCategory = "event"
-	CategoryContact    MemoryCategory = "contact"
-)
-
+// MemoryItem 记忆项
 type MemoryItem struct {
-	ID           string          `json:"id"`
-	Category     MemoryCategory  `json:"category"`
-	Content      string          `json:"content"`
-	Keywords     []string        `json:"keywords"`
-	Importance   int             `json:"importance"`
-	CreatedAt    time.Time       `json:"createdAt"`
-	LastAccessed time.Time       `json:"lastAccessed"`
-	AccessCount  int             `json:"accessCount"`
-	Source       string          `json:"source"`
+	ID           string    `json:"id"`
+	Category     string    `json:"category"`     // preference, fact, event, contact
+	Content      string    `json:"content"`      // 原始内容
+	Keywords     []string  `json:"keywords"`     // 关键词
+	Importance   int       `json:"importance"`   // 重要性 1-10
+	CreatedAt    time.Time `json:"createdAt"`
+	LastAccessed time.Time `json:"lastAccessed"`
+	AccessCount  int       `json:"accessCount"`  // 访问次数
 }
 
+// Hippocampus 海马体记忆系统
 type Hippocampus struct {
-	LongTermMemory  map[string]*MemoryItem `json:"longTermMemory"`
-	RecentFacts     []*MemoryItem          `json:"recentFacts"`
-	UserPreferences map[string]string      `json:"userPreferences"`
-	KeywordsIndex   map[string][]string    `json:"keywordsIndex"`
-	mu              sync.RWMutex
-	dataDir         string
-	maxItems        int
+	LongTermMemory  map[string]MemoryItem  // 按ID索引的长时记忆
+	RecentFacts     []MemoryItem           // 最近事实
+	UserPreferences map[string]string      // 用户偏好
+	memoryDir       string
+	log             *logger.Logger
 }
 
-func NewHippocampus(dataDir string, maxItems int) (*Hippocampus, error) {
+// NewHippocampus 创建海马体记忆系统
+func NewHippocampus(memoryDir string, log *logger.Logger) *Hippocampus {
 	h := &Hippocampus{
-		LongTermMemory:  make(map[string]*MemoryItem),
-		RecentFacts:     make([]*MemoryItem, 0),
+		LongTermMemory:  make(map[string]MemoryItem),
+		RecentFacts:     make([]MemoryItem, 0),
 		UserPreferences: make(map[string]string),
-		KeywordsIndex:   make(map[string][]string),
-		dataDir:         dataDir,
-		maxItems:        maxItems,
+		memoryDir:       memoryDir,
+		log:             log,
 	}
 
-	if err := os.MkdirAll(dataDir, 0755); err != nil {
-		return nil, err
-	}
+	// 加载记忆数据
+	h.load()
 
-	if err := h.load(); err != nil {
-		return nil, err
-	}
-
-	return h, nil
+	return h
 }
 
-func (h *Hippocampus) load() error {
-	data, err := os.ReadFile(filepath.Join(h.dataDir, "hippocampus.json"))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
+// AddMemory 添加记忆项
+func (h *Hippocampus) AddMemory(category, content string, keywords []string, importance int) string {
+	id := fmt.Sprintf("%d", time.Now().UnixNano())
 
-	return json.Unmarshal(data, h)
-}
-
-func (h *Hippocampus) save() error {
-	data, err := json.MarshalIndent(h, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(filepath.Join(h.dataDir, "hippocampus.json"), data, 0644)
-}
-
-func (h *Hippocampus) Remember(content string, category MemoryCategory, source string) (*MemoryItem, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	item := &MemoryItem{
-		ID:           generateID(),
+	item := MemoryItem{
+		ID:           id,
 		Category:     category,
 		Content:      content,
-		Keywords:     extractKeywords(content),
-		Importance:   5,
+		Keywords:     keywords,
+		Importance:   importance,
 		CreatedAt:    time.Now(),
 		LastAccessed: time.Now(),
 		AccessCount:  1,
-		Source:       source,
 	}
 
-	h.LongTermMemory[item.ID] = item
+	// 添加到长时记忆
+	h.LongTermMemory[id] = item
 
-	for _, kw := range item.Keywords {
-		h.KeywordsIndex[kw] = append(h.KeywordsIndex[kw], item.ID)
+	// 添加到最近事实（最多保存100条）
+	h.RecentFacts = append(h.RecentFacts, item)
+	if len(h.RecentFacts) > 100 {
+		h.RecentFacts = h.RecentFacts[1:]
 	}
 
-	switch category {
-	case CategoryPreference:
-		h.UserPreferences[strings.Join(item.Keywords, "_")] = content
-	default:
-		h.RecentFacts = append([]*MemoryItem{item}, h.RecentFacts...)
-		if len(h.RecentFacts) > h.maxItems {
-			h.RecentFacts = h.RecentFacts[:h.maxItems]
+	// 如果是偏好，添加到用户偏好
+	if category == "preference" {
+		for _, keyword := range keywords {
+			h.UserPreferences[keyword] = content
 		}
 	}
 
-	if err := h.save(); err != nil {
-		return nil, err
-	}
+	// 保存到文件
+	h.save()
 
-	return item, nil
+	return id
 }
 
-func (h *Hippocampus) Recall(query string) []*MemoryItem {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+// GetMemory 获取记忆项
+func (h *Hippocampus) GetMemory(id string) (MemoryItem, bool) {
+	item, exists := h.LongTermMemory[id]
+	if exists {
+		// 更新访问信息
+		item.LastAccessed = time.Now()
+		item.AccessCount++
+		h.LongTermMemory[id] = item
+		h.save()
+	}
+	return item, exists
+}
 
-	keywords := extractKeywords(query)
-	matchedIDs := make(map[string]int)
+// SearchMemory 搜索记忆
+func (h *Hippocampus) SearchMemory(query string, limit int) []MemoryItem {
+	var results []MemoryItem
 
-	for _, kw := range keywords {
-		if ids, ok := h.KeywordsIndex[strings.ToLower(kw)]; ok {
-			for _, id := range ids {
-				matchedIDs[id]++
-			}
+	// 搜索长时记忆
+	for _, item := range h.LongTermMemory {
+		if containsKeyword(item, query) {
+			results = append(results, item)
 		}
 	}
 
-	var results []*MemoryItem
-	for id, matchCount := range matchedIDs {
-		if item, ok := h.LongTermMemory[id]; ok {
-			if matchCount >= 1 {
-				results = append(results, item)
-			}
+	// 按重要性和访问次数排序
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].Importance != results[j].Importance {
+			return results[i].Importance > results[j].Importance
 		}
-	}
+		return results[i].AccessCount > results[j].AccessCount
+	})
 
-	for i := range results {
-		results[i].LastAccessed = time.Now()
-		results[i].AccessCount++
+	// 限制返回数量
+	if len(results) > limit {
+		results = results[:limit]
 	}
 
 	return results
 }
 
-func (h *Hippocampus) GetPreferences() map[string]string {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	prefs := make(map[string]string)
-	for k, v := range h.UserPreferences {
-		prefs[k] = v
-	}
-	return prefs
+// GetUserPreferences 获取用户偏好
+func (h *Hippocampus) GetUserPreferences() map[string]string {
+	return h.UserPreferences
 }
 
-func (h *Hippocampus) GetRecentFacts(limit int) []*MemoryItem {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
-	if limit > len(h.RecentFacts) {
-		limit = len(h.RecentFacts)
+// GetRecentFacts 获取最近事实
+func (h *Hippocampus) GetRecentFacts(limit int) []MemoryItem {
+	if len(h.RecentFacts) <= limit {
+		return h.RecentFacts
 	}
-	return h.RecentFacts[:limit]
+	return h.RecentFacts[len(h.RecentFacts)-limit:]
 }
 
-func (h *Hippocampus) GetAll() []*MemoryItem {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+// DeleteMemory 删除记忆项
+func (h *Hippocampus) DeleteMemory(id string) bool {
+	if _, exists := h.LongTermMemory[id]; exists {
+		delete(h.LongTermMemory, id)
 
-	items := make([]*MemoryItem, 0, len(h.LongTermMemory))
-	for _, item := range h.LongTermMemory {
-		items = append(items, item)
-	}
-	return items
-}
-
-func (h *Hippocampus) Forget(id string) bool {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-
-	item, ok := h.LongTermMemory[id]
-	if !ok {
-		return false
-	}
-
-	for _, kw := range item.Keywords {
-		ids := h.KeywordsIndex[kw]
-		for i, itemID := range ids {
-			if itemID == id {
-				h.KeywordsIndex[kw] = append(ids[:i], ids[i+1:]...)
+		// 从最近事实中删除
+		for i, item := range h.RecentFacts {
+			if item.ID == id {
+				h.RecentFacts = append(h.RecentFacts[:i], h.RecentFacts[i+1:]...)
 				break
 			}
 		}
+
+		h.save()
+		return true
 	}
-
-	delete(h.LongTermMemory, id)
-
-	for i, fact := range h.RecentFacts {
-		if fact.ID == id {
-			h.RecentFacts = append(h.RecentFacts[:i], h.RecentFacts[i+1:]...)
-			break
-		}
-	}
-
-	h.save()
-	return true
+	return false
 }
 
-func (h *Hippocampus) FormatContext() string {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+// UpdateMemory 更新记忆项
+func (h *Hippocampus) UpdateMemory(id, content string, keywords []string, importance int) bool {
+	if item, exists := h.LongTermMemory[id]; exists {
+		item.Content = content
+		item.Keywords = keywords
+		item.Importance = importance
+		item.LastAccessed = time.Now()
+		h.LongTermMemory[id] = item
 
-	var sb strings.Builder
-
-	if len(h.UserPreferences) > 0 {
-		sb.WriteString("User preferences:\n")
-		for k, v := range h.UserPreferences {
-			sb.WriteString(fmt.Sprintf("- %s: %s\n", k, v))
-		}
-		sb.WriteString("\n")
-	}
-
-	if len(h.RecentFacts) > 0 {
-		sb.WriteString("Recent facts:\n")
-		for _, fact := range h.RecentFacts {
-			if fact.AccessCount > 0 {
-				sb.WriteString(fmt.Sprintf("- %s\n", fact.Content))
+		// 更新最近事实
+		for i, recentItem := range h.RecentFacts {
+			if recentItem.ID == id {
+				h.RecentFacts[i] = item
+				break
 			}
 		}
-	}
 
-	return sb.String()
+		h.save()
+		return true
+	}
+	return false
 }
 
-func (h *Hippocampus) ShouldRemember(content string) bool {
-	rememberPatterns := []string{
-		"remember", "don't forget", "write down", "note that",
-		"i like", "i love", "i hate", "i prefer", "my favorite",
-		"my name is", "my birthday", "my phone", "my email", "my address",
-		"记住", "别忘了", "记下来", "我喜欢", "我讨厌", "我的名字", "我的生日",
-		"覚えて", "忘れないで", "メモして", "好き", "嫌い",
+// save 保存记忆到文件
+func (h *Hippocampus) save() {
+	// 确保目录存在
+	if err := os.MkdirAll(h.memoryDir, 0755); err != nil {
+		h.log.Error("failed to create memory directory", "error", err)
+		return
 	}
 
-	lowerContent := strings.ToLower(content)
-	for _, pattern := range rememberPatterns {
-		if strings.Contains(lowerContent, pattern) {
+	// 保存长时记忆
+	longTermPath := filepath.Join(h.memoryDir, "long_term_memory.json")
+	data, err := json.MarshalIndent(h.LongTermMemory, "", "  ")
+	if err != nil {
+		h.log.Error("failed to marshal long term memory", "error", err)
+		return
+	}
+
+	if err := os.WriteFile(longTermPath, data, 0644); err != nil {
+		h.log.Error("failed to write long term memory", "error", err)
+	}
+
+	// 保存最近事实
+	recentPath := filepath.Join(h.memoryDir, "recent_facts.json")
+	data, err = json.MarshalIndent(h.RecentFacts, "", "  ")
+	if err != nil {
+		h.log.Error("failed to marshal recent facts", "error", err)
+		return
+	}
+
+	if err := os.WriteFile(recentPath, data, 0644); err != nil {
+		h.log.Error("failed to write recent facts", "error", err)
+	}
+
+	// 保存用户偏好
+	prefsPath := filepath.Join(h.memoryDir, "user_preferences.json")
+	data, err = json.MarshalIndent(h.UserPreferences, "", "  ")
+	if err != nil {
+		h.log.Error("failed to marshal user preferences", "error", err)
+		return
+	}
+
+	if err := os.WriteFile(prefsPath, data, 0644); err != nil {
+		h.log.Error("failed to write user preferences", "error", err)
+	}
+}
+
+// load 从文件加载记忆
+func (h *Hippocampus) load() {
+	// 加载长时记忆
+	longTermPath := filepath.Join(h.memoryDir, "long_term_memory.json")
+	if data, err := os.ReadFile(longTermPath); err == nil {
+		if err := json.Unmarshal(data, &h.LongTermMemory); err != nil {
+			h.log.Error("failed to unmarshal long term memory", "error", err)
+		}
+	}
+
+	// 加载最近事实
+	recentPath := filepath.Join(h.memoryDir, "recent_facts.json")
+	if data, err := os.ReadFile(recentPath); err == nil {
+		if err := json.Unmarshal(data, &h.RecentFacts); err != nil {
+			h.log.Error("failed to unmarshal recent facts", "error", err)
+		}
+	}
+
+	// 加载用户偏好
+	prefsPath := filepath.Join(h.memoryDir, "user_preferences.json")
+	if data, err := os.ReadFile(prefsPath); err == nil {
+		if err := json.Unmarshal(data, &h.UserPreferences); err != nil {
+			h.log.Error("failed to unmarshal user preferences", "error", err)
+		}
+	}
+}
+
+// containsKeyword 检查记忆项是否包含关键词
+func containsKeyword(item MemoryItem, query string) bool {
+	// 检查内容
+	if containsString(item.Content, query) {
+		return true
+	}
+
+	// 检查关键词
+	for _, keyword := range item.Keywords {
+		if containsString(keyword, query) {
 			return true
 		}
 	}
@@ -263,65 +269,38 @@ func (h *Hippocampus) ShouldRemember(content string) bool {
 	return false
 }
 
-func (h *Hippocampus) DetectCategory(content string) MemoryCategory {
-	lowerContent := strings.ToLower(content)
-
-	if strings.Contains(lowerContent, "like") || strings.Contains(lowerContent, "prefer") ||
-		strings.Contains(lowerContent, "hate") || strings.Contains(lowerContent, "favorite") ||
-		strings.Contains(lowerContent, "喜欢") || strings.Contains(lowerContent, "讨厌") ||
-		strings.Contains(lowerContent, "好き") || strings.Contains(lowerContent, "嫌い") {
-		return CategoryPreference
-	}
-
-	if strings.Contains(lowerContent, "birthday") || strings.Contains(lowerContent, "meeting") ||
-		strings.Contains(lowerContent, "appointment") || strings.Contains(lowerContent, "event") ||
-		strings.Contains(lowerContent, "生日") || strings.Contains(lowerContent, "会议") ||
-		strings.Contains(lowerContent, "誕生日") || strings.Contains(lowerContent, "会議") {
-		return CategoryEvent
-	}
-
-	if strings.Contains(lowerContent, "phone") || strings.Contains(lowerContent, "email") ||
-		strings.Contains(lowerContent, "address") || strings.Contains(lowerContent, "contact") ||
-		strings.Contains(lowerContent, "电话") || strings.Contains(lowerContent, "邮箱") ||
-		strings.Contains(lowerContent, "電話") || strings.Contains(lowerContent, "住所") {
-		return CategoryContact
-	}
-
-	return CategoryFact
+// containsString 检查字符串是否包含子字符串（不区分大小写）
+func containsString(s, substr string) bool {
+	return len(s) >= len(substr) && containsIgnoreCase(s, substr)
 }
 
-func generateID() string {
-	return fmt.Sprintf("mem_%d", time.Now().UnixNano())
-}
-
-func extractKeywords(content string) []string {
-	words := strings.Fields(strings.ToLower(content))
-	keywords := make([]string, 0)
-
-	stopWords := map[string]bool{
-		"the": true, "a": true, "an": true, "is": true, "are": true,
-		"was": true, "were": true, "be": true, "been": true,
-		"have": true, "has": true, "had": true, "do": true,
-		"does": true, "did": true, "will": true, "would": true,
-		"could": true, "should": true, "may": true, "might": true,
-		"must": true, "shall": true, "can": true, "need": true,
-		"i": true, "you": true, "he": true, "she": true, "it": true,
-		"we": true, "they": true, "this": true, "that": true,
-		"these": true, "those": true, "to": true, "of": true,
-		"in": true, "for": true, "on": true, "with": true,
-		"at": true, "by": true, "from": true, "as": true,
-		"的": true, "是": true, "在": true, "了": true, "和": true,
-		"有": true, "我": true, "你": true, "他": true, "她": true,
-		"の": true, "は": true, "が": true, "を": true, "に": true,
-		"で": true, "と": true, "し": true, "て": true,
-	}
-
-	for _, word := range words {
-		word = strings.Trim(word, ".,!?;:\"'()[]{}")
-		if len(word) > 1 && !stopWords[word] {
-			keywords = append(keywords, word)
+// containsIgnoreCase 不区分大小写的字符串包含检查
+func containsIgnoreCase(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if equalFold(s[i:i+len(substr)], substr) {
+			return true
 		}
 	}
+	return false
+}
 
-	return keywords
+// equalFold 不区分大小写的字符串比较
+func equalFold(s1, s2 string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+	for i := 0; i < len(s1); i++ {
+		c1 := s1[i]
+		c2 := s2[i]
+		if c1 >= 'A' && c1 <= 'Z' {
+			c1 += 'a' - 'A'
+		}
+		if c2 >= 'A' && c2 <= 'Z' {
+			c2 += 'a' - 'A'
+		}
+		if c1 != c2 {
+			return false
+		}
+	}
+	return true
 }

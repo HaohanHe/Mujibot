@@ -1,182 +1,88 @@
 package system
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"strings"
 	"time"
 )
 
+// SystemInfo 系统信息结构体
 type SystemInfo struct {
-	OS           string `json:"os"`
-	Arch         string `json:"arch"`
-	KernelVersion string `json:"kernelVersion"`
-	Hostname     string `json:"hostname"`
-	Distro       string `json:"distro"`
-	DistroVersion string `json:"distroVersion"`
-	MemoryTotal  uint64 `json:"memoryTotal"`
-	CPUModel     string `json:"cpuModel"`
-	CPUCores     int    `json:"cpuCores"`
+	Type     string // 系统类型: Linux/Windows/Darwin
+	Arch     string // 架构: amd64/arm64/arm
+	Kernel   string // 内核版本
+	Hostname string // 主机名
 }
 
-func GetInfo() *SystemInfo {
-	info := &SystemInfo{
-		OS:       runtime.GOOS,
-		Arch:     runtime.GOARCH,
-		CPUCores: runtime.NumCPU(),
-	}
+// GetSystemInfo 获取系统信息
+func GetSystemInfo() *SystemInfo {
+	sysType := runtime.GOOS
+	sysArch := runtime.GOARCH
+	kernel := getKernelVersion()
+	hostname, _ := os.Hostname()
 
-	info.Hostname, _ = os.Hostname()
-
-	switch runtime.GOOS {
-	case "linux":
-		info.getLinuxInfo()
-	case "darwin":
-		info.getDarwinInfo()
-	case "windows":
-		info.getWindowsInfo()
-	}
-
-	return info
-}
-
-func (i *SystemInfo) getLinuxInfo() {
-	if data, err := os.ReadFile("/proc/version"); err == nil {
-		i.KernelVersion = strings.TrimSpace(string(data))
-		if parts := strings.Split(i.KernelVersion, " "); len(parts) > 2 {
-			i.KernelVersion = parts[2]
-		}
-	}
-
-	if data, err := os.ReadFile("/etc/os-release"); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, "PRETTY_NAME=") {
-				i.Distro = strings.Trim(strings.TrimPrefix(line, "PRETTY_NAME="), "\"")
-			}
-			if strings.HasPrefix(line, "VERSION_ID=") {
-				i.DistroVersion = strings.Trim(strings.TrimPrefix(line, "VERSION_ID="), "\"")
-			}
-		}
-	}
-
-	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, "MemTotal:") {
-				fields := strings.Fields(line)
-				if len(fields) >= 2 {
-					fmt.Sscanf(fields[1], "%d", &i.MemoryTotal)
-					i.MemoryTotal = i.MemoryTotal / 1024
-				}
-				break
-			}
-		}
-	}
-
-	if data, err := os.ReadFile("/proc/cpuinfo"); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, "model name") || strings.HasPrefix(line, "Model") {
-				parts := strings.SplitN(line, ":", 2)
-				if len(parts) == 2 {
-					i.CPUModel = strings.TrimSpace(parts[1])
-				}
-				break
-			}
-		}
+	return &SystemInfo{
+		Type:     sysType,
+		Arch:     sysArch,
+		Kernel:   kernel,
+		Hostname: hostname,
 	}
 }
 
-func (i *SystemInfo) getDarwinInfo() {
-	if out, err := exec.Command("uname", "-r").Output(); err == nil {
-		i.KernelVersion = strings.TrimSpace(string(out))
-	}
-
-	if out, err := exec.Command("sw_vers", "-productName").Output(); err == nil {
-		i.Distro = strings.TrimSpace(string(out))
-	}
-	if out, err := exec.Command("sw_vers", "-productVersion").Output(); err == nil {
-		i.DistroVersion = strings.TrimSpace(string(out))
-	}
-}
-
-func (i *SystemInfo) getWindowsInfo() {
-	if out, err := exec.Command("cmd", "/c", "ver").Output(); err == nil {
-		i.KernelVersion = strings.TrimSpace(string(out))
-	}
-	i.Distro = "Windows"
-}
-
-func (i *SystemInfo) Format() string {
-	var buf bytes.Buffer
-
-	buf.WriteString(fmt.Sprintf("- 操作系统: %s", i.OS))
-	if i.Distro != "" {
-		buf.WriteString(fmt.Sprintf(" (%s", i.Distro))
-		if i.DistroVersion != "" {
-			buf.WriteString(fmt.Sprintf(" %s", i.DistroVersion))
-		}
-		buf.WriteString(")")
-	}
-	buf.WriteString("\n")
-
-	buf.WriteString(fmt.Sprintf("- 系统架构: %s", i.Arch))
-	switch i.Arch {
-	case "arm":
-		buf.WriteString(" (ARM 32-bit)")
-	case "arm64":
-		buf.WriteString(" (ARM 64-bit)")
-	case "amd64":
-		buf.WriteString(" (x86_64)")
-	case "386":
-		buf.WriteString(" (x86 32-bit)")
-	}
-	if i.CPUModel != "" {
-		buf.WriteString(fmt.Sprintf(" - %s", i.CPUModel))
-	}
-	buf.WriteString("\n")
-
-	if i.KernelVersion != "" {
-		buf.WriteString(fmt.Sprintf("- 内核版本: %s\n", i.KernelVersion))
-	}
-
-	buf.WriteString(fmt.Sprintf("- CPU核心: %d\n", i.CPUCores))
-
-	if i.MemoryTotal > 0 {
-		buf.WriteString(fmt.Sprintf("- 内存容量: %d MB\n", i.MemoryTotal))
-	}
-
-	buf.WriteString(fmt.Sprintf("- 主机名: %s\n", i.Hostname))
-
-	return buf.String()
-}
-
-func (i *SystemInfo) ShortInfo() string {
-	arch := i.Arch
-	switch i.Arch {
-	case "arm":
-		arch = "ARMv7"
-	case "arm64":
-		arch = "ARM64"
-	case "amd64":
-		arch = "x64"
-	}
-
-	if i.Distro != "" {
-		return fmt.Sprintf("%s/%s", i.Distro, arch)
-	}
-	return fmt.Sprintf("%s/%s", i.OS, arch)
-}
-
+// GetCurrentTime 获取当前时间
 func GetCurrentTime() string {
-	return time.Now().Format("2006-01-02 15:04:05 MST")
+	return time.Now().Format("2006-01-02 15:04:05")
 }
 
+// GetTimezone 获取时区
 func GetTimezone() string {
-	name, _ := time.Now().Zone()
-	return name
+	_, zone := time.Now().Zone()
+	return zone
+}
+
+// GetInfo 获取系统信息
+func GetInfo() *SystemInfo {
+	return GetSystemInfo()
+}
+
+// Format 格式化系统信息
+func (s *SystemInfo) Format() string {
+	return s.FormatForPrompt()
+}
+
+// getKernelVersion 获取内核版本
+func getKernelVersion() string {
+	// 在 Linux 系统上读取 /proc/version
+	if runtime.GOOS == "linux" {
+		file, err := os.Open("/proc/version")
+		if err == nil {
+			defer file.Close()
+			scanner := bufio.NewScanner(file)
+			if scanner.Scan() {
+				line := scanner.Text()
+				// 提取内核版本信息
+				parts := strings.Fields(line)
+				if len(parts) >= 3 {
+					return parts[2]
+				}
+				return line
+			}
+		}
+	}
+	// 其他系统返回默认值
+	return "unknown"
+}
+
+// String 返回系统信息的字符串表示
+func (s *SystemInfo) String() string {
+	return fmt.Sprintf("%s (%s) %s @ %s", s.Type, s.Arch, s.Kernel, s.Hostname)
+}
+
+// FormatForPrompt 为系统提示词格式化系统信息
+func (s *SystemInfo) FormatForPrompt() string {
+	return fmt.Sprintf("- 系统类型: %s\n- 系统架构: %s\n- 内核版本: %s\n- 主机名: %s",
+		s.Type, s.Arch, s.Kernel, s.Hostname)
 }

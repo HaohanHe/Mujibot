@@ -139,10 +139,97 @@ func (m *Manager) AddMessage(session *Session, role, content string) {
 	session.Messages = append(session.Messages, msg)
 	session.LastActivity = time.Now()
 
-	// 限制消息数量
+	// 检查是否需要压缩
 	if len(session.Messages) > m.maxMessages {
-		session.Messages = session.Messages[len(session.Messages)-m.maxMessages:]
+		// 压缩旧消息
+		session.Messages = m.compressHistory(session.Messages, m.maxMessages)
 	}
+}
+
+// compressHistory 压缩历史消息
+func (m *Manager) compressHistory(messages []Message, maxMessages int) []Message {
+	// 保留最近的 1/3 消息
+	keepRecent := maxMessages / 3
+	if keepRecent < 5 {
+		keepRecent = 5
+	}
+
+	// 压缩前面的消息
+	if len(messages) > maxMessages {
+		// 提取需要压缩的消息
+		toCompress := messages[:len(messages)-keepRecent]
+		// 生成摘要
+		summary := m.generateSummary(toCompress)
+		// 创建摘要消息
+		summaryMsg := Message{
+			Role:      "system",
+			Content:   "[Summary of previous conversation] " + summary,
+			Timestamp: time.Now(),
+		}
+		// 替换为摘要 + 最近的消息
+		return append([]Message{summaryMsg}, messages[len(messages)-keepRecent:]...)
+	}
+
+	return messages
+}
+
+// generateSummary 生成消息摘要
+func (m *Manager) generateSummary(messages []Message) string {
+	// 简单的摘要生成逻辑
+	// 实际项目中可以使用 LLM 来生成更智能的摘要
+	var summary string
+	var userMessages []string
+	var assistantMessages []string
+
+	for _, msg := range messages {
+		if msg.Role == "user" {
+			userMessages = append(userMessages, msg.Content)
+		} else if msg.Role == "assistant" {
+			assistantMessages = append(assistantMessages, msg.Content)
+		}
+	}
+
+	// 生成用户问题摘要
+	if len(userMessages) > 0 {
+		summary += "User asked about: "
+		for i, msg := range userMessages {
+			if i < 3 { // 只取前3个问题
+				if i > 0 {
+					summary += "; "
+				}
+				// 取消息的前50个字符
+				if len(msg) > 50 {
+					summary += msg[:50] + "..."
+				} else {
+					summary += msg
+				}
+			}
+		}
+	}
+
+	// 生成助手回答摘要
+	if len(assistantMessages) > 0 {
+		summary += " Assistant responded with: "
+		for i, msg := range assistantMessages {
+			if i < 2 { // 只取前2个回答
+				if i > 0 {
+					summary += "; "
+				}
+				// 取消息的前50个字符
+				if len(msg) > 50 {
+					summary += msg[:50] + "..."
+				} else {
+					summary += msg
+				}
+			}
+		}
+	}
+
+	if summary == "" {
+		summary = "Previous conversation about various topics"
+	}
+
+	return summary
 }
 
 // AddToolCallMessage 添加带工具调用的消息
@@ -160,9 +247,10 @@ func (m *Manager) AddToolCallMessage(session *Session, role, content string, too
 	session.Messages = append(session.Messages, msg)
 	session.LastActivity = time.Now()
 
-	// 限制消息数量
+	// 检查是否需要压缩
 	if len(session.Messages) > m.maxMessages {
-		session.Messages = session.Messages[len(session.Messages)-m.maxMessages:]
+		// 压缩旧消息
+		session.Messages = m.compressHistory(session.Messages, m.maxMessages)
 	}
 }
 
