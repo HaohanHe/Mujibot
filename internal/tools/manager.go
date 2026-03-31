@@ -99,6 +99,82 @@ func (m *Manager) GetAll() []Tool {
 	return result
 }
 
+// GetAllTools 获取所有工具（返回映射）
+func (m *Manager) GetAllTools() map[string]Tool {
+	return m.tools
+}
+
+// TestCustomAPI 测试自定义API
+func (m *Manager) TestCustomAPI(api interface{}, params map[string]string) (string, error) {
+	// 尝试将 api 转换为 config.CustomAPIConfig
+	customAPI, ok := api.(struct {
+		Name        string
+		URL         string
+		Method      string
+		Headers     map[string]string
+		APIKey      string
+		Timeout     int
+	}) 
+	if !ok {
+		return "", fmt.Errorf("invalid API config")
+	}
+
+	// 构建请求URL
+	url := customAPI.URL
+	for key, value := range params {
+		url = strings.Replace(url, "{"+key+"}", value, -1)
+	}
+
+	// 创建HTTP客户端
+	client := &http.Client{
+		Timeout: time.Duration(customAPI.Timeout) * time.Second,
+	}
+
+	// 创建请求
+	var req *http.Request
+	var err error
+
+	if customAPI.Method == "POST" {
+		req, err = http.NewRequest("POST", url, nil)
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// 添加头信息
+	for key, value := range customAPI.Headers {
+		req.Header.Set(key, value)
+	}
+
+	// 添加API Key
+	if customAPI.APIKey != "" {
+		req.Header.Set("Authorization", "Bearer "+customAPI.APIKey)
+	}
+
+	// 发送请求
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// 检查状态码
+	if resp.StatusCode != http.StatusOK {
+		return string(body), fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	return string(body), nil
+}
+
 // Execute 执行工具
 func (m *Manager) Execute(name string, args map[string]interface{}) (string, error) {
 	tool, ok := m.tools[name]

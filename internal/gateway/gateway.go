@@ -187,7 +187,7 @@ func (g *Gateway) initComponents() error {
 		g.log,
 	)
 
-	toolsHandler := web.NewToolsHandler(g.config, g.toolMgr)
+	toolsHandler := web.NewToolsHandler(g.config, g.toolMgr, g.log)
 	g.webServer.SetToolsHandler(toolsHandler)
 
 	return nil

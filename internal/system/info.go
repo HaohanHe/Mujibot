@@ -39,7 +39,7 @@ func GetCurrentTime() string {
 
 // GetTimezone 获取时区
 func GetTimezone() string {
-	_, zone := time.Now().Zone()
+	zone, _ := time.Now().Zone()
 	return zone
 }
 
