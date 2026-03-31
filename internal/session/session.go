@@ -148,26 +148,10 @@ func (m *Manager) AddMessage(session *Session, role, content string) {
 
 // compressHistory 压缩历史消息
 func (m *Manager) compressHistory(messages []Message, maxMessages int) []Message {
-	// 保留最近的 1/3 消息
-	keepRecent := maxMessages / 3
-	if keepRecent < 5 {
-		keepRecent = 5
-	}
-
-	// 压缩前面的消息
+	// 如果消息数量超过限制，先尝试简单的截断
 	if len(messages) > maxMessages {
-		// 提取需要压缩的消息
-		toCompress := messages[:len(messages)-keepRecent]
-		// 生成摘要
-		summary := m.generateSummary(toCompress)
-		// 创建摘要消息
-		summaryMsg := Message{
-			Role:      "system",
-			Content:   "[Summary of previous conversation] " + summary,
-			Timestamp: time.Now(),
-		}
-		// 替换为摘要 + 最近的消息
-		return append([]Message{summaryMsg}, messages[len(messages)-keepRecent:]...)
+		// 直接保留最近的 maxMessages 条消息
+		return messages[len(messages)-maxMessages:]
 	}
 
 	return messages
